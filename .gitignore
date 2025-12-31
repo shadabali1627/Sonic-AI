@@ -41,6 +41,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 logs/
+lint_*.txt
 
 # Node.js
 node_modules/
