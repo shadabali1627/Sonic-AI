@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* 60% Base (Void) */
+    --background: 240 30% 4%;
+    --foreground: 240 20% 98%;
+    --void-lighter: 240 25% 8%;
+
+    /* 30% Surface (Glass) */
+    --card: 240 20% 95%;
+    /* Opacity handled in utility */
+    --card-foreground: 240 20% 98%;
+    --popover: 240 25% 8%;
+    --popover-foreground: 240 20% 98%;
+    --muted: 240 20% 20%;
+    --muted-foreground: 240 20% 70%;
+
+    /* 10% Accent (Neon) */
+    --primary: 190 100% 50%;
+    /* Neon Cyan */
+    --primary-foreground: 240 30% 4%;
+    --secondary: 270 100% 60%;
+    /* Electric Purple */
+    --secondary-foreground: 240 20% 98%;
+    --accent: 190 100% 50%;
+    --accent-foreground: 240 30% 4%;
+
+    /* Semantic Colors */
+    --success: 150 60% 45%;
+    --warning: 40 90% 60%;
+    --destructive: 350 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 20% 20%;
+    --input: 240 20% 20%;
+    --ring: 190 100% 50%;
+
+    /* Fluid Typography & Spacing */
+    --fs-h1: clamp(2rem, 5vw + 1rem, 3.5rem);
+    --fs-h2: clamp(1.5rem, 3vw + 1rem, 2.5rem);
+    --fs-body: clamp(0.875rem, 0.5vw + 0.75rem, 1rem);
+    --spacing-container: clamp(1rem, 5vw, 3rem);
+  }
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-inter);
+  font-size: var(--fs-body);
+  overflow-x: hidden;
+  /* Multi-layered ambient background */
+  background-image:
+    radial-gradient(circle at 15% 50%, hsla(270, 100%, 60%, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 30%, hsla(190, 100%, 50%, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 50% 0%, hsla(240, 20%, 95%, 0.02) 0%, transparent 40%);
+  background-attachment: fixed;
+}
+
+/* ... */
+/* Typography Utilities */
+h1 {
+  font-size: var(--fs-h1);
+}
+
+h2 {
+  font-size: var(--fs-h2);
+}
+
+h3,
+h4,
+.font-heading {
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Premium Elevation & Glass */
+.glass {
+  background: hsla(240, 20%, 95%, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsla(0, 0%, 100%, 0.08);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.elevation-card {
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.5);
+}
+
+.elevation-floating {
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+}
+
+.glass-hover:hover {
+  background: hsla(0, 0%, 100%, 0.08);
+  border-color: hsla(0, 0%, 100%, 0.15);
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.1);
+}
+
+/* Typography Utilities */
+h1,
+h2,
+h3,
+h4,
+.font-heading {
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #00F2FF 0%, #7000FF 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 99px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
