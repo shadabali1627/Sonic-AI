@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+motor
+beanie
+passlib[bcrypt]
+python-multipart
+python-jose[cryptography]
+pymupdf
+httpx
+pydantic-settings
+email-validator
+langchain
+langchain-google-genai
+pytest
+pytest-asyncio
+httpx
