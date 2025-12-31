@@ -9,7 +9,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database
-    MONGODB_URL: str = "mongodb+srv://admin:admin123@cluster0.mongodb.net/?retryWrites=true&w=majority"
+    # Database
+    MONGODB_URL: str = ""
     DATABASE_NAME: str = "sonic_ai_db"
 
     # AI
