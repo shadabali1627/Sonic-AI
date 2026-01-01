@@ -31,13 +31,21 @@ The default security group allows port 22 (SSH), 80 (HTTP), and 443 (HTTPS). We 
 3.  Click **Edit inbound rules**.
 4.  Add Rule:
     - **Type**: Custom TCP
-    - **Port range**: `3000` (Frontend)
+    - **Port range**: `3000` (Frontend - Optional for HTTPS)
     - **Source**: `0.0.0.0/0` (Anywhere)
 5.  Add Rule:
     - **Type**: Custom TCP
-    - **Port range**: `8000` (Backend)
+    - **Port range**: `8000` (Backend - Optional for HTTPS)
     - **Source**: `0.0.0.0/0` (Anywhere)
-6.  Click **Save rules**.
+6.  **Add Rule (CRITICAL for HTTPS)**:
+    - **Type**: HTTP
+    - **Port range**: 80
+    - **Source**: `0.0.0.0/0`
+7.  **Add Rule (CRITICAL for HTTPS)**:
+    - **Type**: HTTPS
+    - **Port range**: 443
+    - **Source**: `0.0.0.0/0`
+8.  Click **Save rules**.
 
 ## Step 3: Connect to the Instance
 
