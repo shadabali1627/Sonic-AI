@@ -9,9 +9,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database
-    # Database
     MONGODB_URL: str = ""
     DATABASE_NAME: str = "sonic_ai_db"
+
+    # Host Configuration
+    BASE_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "http://localhost:3000"
 
     # AI
     GEMINI_API_KEY: str = "" # Set in .env

@@ -123,7 +123,8 @@ async def google_login(action: str = "login"):
     # OR Backend generating the link.
     # Let's assume the backend constructs the full URL for the user to visit.
     
-    base_url = "http://localhost:8000" # TODO: Make this configurable
+    # Use configured BASE_URL from settings
+    base_url = settings.BASE_URL
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
     
     # We pass 'action' as the 'state' parameter to Google to persist it through the flow
@@ -145,7 +146,8 @@ async def google_callback(code: str, state: str = "login"):
     if not settings.GOOGLE_CLIENT_ID or not settings.GOOGLE_CLIENT_SECRET:
          raise HTTPException(status_code=500, detail="Google Credentials not configured.")
 
-    base_url = "http://localhost:8000" # TODO: Make this configurable
+    # Use configured BASE_URL from settings
+    base_url = settings.BASE_URL
     redirect_uri = f"{base_url}{settings.API_V1_STR}/auth/google/callback"
 
     token_url = "https://oauth2.googleapis.com/token"
@@ -219,7 +221,9 @@ async def google_callback(code: str, state: str = "login"):
     
     # 5. Redirect to Frontend with Token
     # Assuming Frontend runs on localhost:3000
-    frontend_url = f"http://localhost:3000/callback?token={access_token}"
+    # 5. Redirect to Frontend with Token
+    # Use configured FRONTEND_URL from settings
+    frontend_url = f"{settings.FRONTEND_URL}/callback?token={access_token}"
     return RedirectResponse(url=frontend_url)
 
 @router.get("/github/login")
