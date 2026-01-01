@@ -189,7 +189,7 @@ async def google_callback(code: str, state: str = "login"):
         if state == "signup":
             # REJECT: User already exists, cannot sign up again.
             return RedirectResponse(
-                url=f"http://localhost:3000/callback?error=User with this email already exists"
+                url=f"{settings.FRONTEND_URL}/callback?error=User with this email already exists"
                 # Alternatively, we could auto-login but show a message?
                 # User asked: "it show the message" when "again sign up"
                 # So error is appropriate.
@@ -253,7 +253,7 @@ async def forgot_password(request: ForgotPasswordRequest):
     await user.save()
 
     # Send Email (Dev Mode: Print to Console)
-    reset_link = f"http://localhost:3000/reset-password?token={reset_token}"
+    reset_link = f"{settings.FRONTEND_URL}/reset-password?token={reset_token}"
     
     print("\n" + "="*50)
     print(f"PASSWORD RESET REQUEST FOR: {user.email}")

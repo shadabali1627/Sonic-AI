@@ -54,6 +54,7 @@ print(f"Server Startup. CWD: {os.getcwd()}")
 origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    settings.FRONTEND_URL,
     "*", # Allow all for debugging
 ]
 
