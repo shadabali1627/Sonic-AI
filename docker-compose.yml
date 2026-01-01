@@ -18,11 +18,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://3.219.30.218:8000/api/v1
     container_name: sonic_ai_frontend
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1 # Client-side calls might need public IP if accessed remotely
+      - NEXT_PUBLIC_API_URL=http://3.219.30.218:8000/api/v1
     depends_on:
       - backend
     restart: unless-stopped
