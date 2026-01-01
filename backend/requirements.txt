@@ -16,3 +16,4 @@ pytest-asyncio
 httpx
 slowapi
 python-docx
+python-pptx
