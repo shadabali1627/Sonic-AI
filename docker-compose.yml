@@ -1,18 +1,32 @@
 version: '3.8'
 
 services:
+  caddy:
+    image: caddy:latest
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
   backend:
     build:
       context: .
       dockerfile: backend/Dockerfile
     container_name: sonic_ai_backend
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     env_file:
       - .env
     environment:
-      - BASE_URL=http://3.219.30.218:8000
-      - FRONTEND_URL=http://3.219.30.218:3000
+      - BASE_URL=https://sonic-ai.theworkpc.com
+      - FRONTEND_URL=https://sonic-ai.theworkpc.com
     # environment:
     #   - MONGODB_URL=mongodb+srv://... (Or use local mongo container)
     restart: unless-stopped
@@ -22,12 +36,16 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://3.219.30.218:8000/api/v1
+        NEXT_PUBLIC_API_URL: https://sonic-ai.theworkpc.com/api/v1
     container_name: sonic_ai_frontend
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://3.219.30.218:8000/api/v1
+      - NEXT_PUBLIC_API_URL=https://sonic-ai.theworkpc.com/api/v1
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

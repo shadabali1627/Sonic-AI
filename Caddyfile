@@ -1,0 +1,7 @@
+sonic-ai.theworkpc.com {
+    # Backend API - Preserve full path
+    reverse_proxy /api/v1/* backend:8000
+
+    # Frontend - Catch all other requests
+    reverse_proxy * frontend:3000
+}
