@@ -34,6 +34,8 @@ Sonic AI is a modern, high-performance AI chat application built with a robust t
 -   **Database ODM**: [Beanie](https://beanie-odm.dev/) (Async MongoDB ODM)
 -   **Driver**: Motor (AsyncIO)
 -   **AI/LLM**: LangChain, Google Gemini API
+    -   **Text Generation**: `gemma-3n-e4b-it` (Gemma 3)
+    -   **Image Analysis**: `gemma-3-12b-it` (Gemma 3 Vision)
 -   **Testing**: Pytest
 
 ### Database
