@@ -1,143 +1,125 @@
 # Sonic AI
 
-Sonic AI is a modern, high-performance AI chat application built with a robust tech stack designed for speed, scalability, and a premium user experience. It features a sleek, responsive frontend and a powerful asynchronous Python backend.
+<div align="center">
+  <h3>The Next Generation of Multimodal Intelligence</h3>
+  <p>
+    <a href="https://nextjs.org/">
+      <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js&logoColor=white" alt="Next.js" />
+    </a>
+    <a href="https://tailwindcss.com/">
+      <img src="https://img.shields.io/badge/Tailwind_CSS-4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
+    </a>
+    <a href="https://fastapi.tiangolo.com/">
+      <img src="https://img.shields.io/badge/FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+    </a>
+    <a href="https://python.org/">
+      <img src="https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
+    </a>
+    <a href="https://mongodb.com/">
+      <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
+    </a>
+  </p>
+  <br />
+  <a href="https://sonic-ai.theworkpc.com" target="_blank">
+    <img src="https://img.shields.io/badge/🚀_View_Live_Demo-000000?style=for-the-badge&logoSize=auto" alt="Live Demo" height="40" />
+  </a>
+</div>
+
+<br />
+
+Sonic AI is a modern, high-performance AI chat application built designed for speed, scalability, and a premium user experience. It leverages the power of **Google Gemma 3** models to provide multimodal interaction (text and vision) in a sleek interface.
+
+## 📸 Screenshots
+
+<div align="center">
+  <img src="docs/screenshots/screenshot-4.png" alt="Chat Interface" width="800" />
+  <br/><br/>
+  <div style="display: flex; gap: 10px; justify-content: center;">
+    <img src="docs/screenshots/screenshot-1.png" alt="Login Screen" width="400" />
+    <img src="docs/screenshots/screenshot-3.png" alt="Welcome Screen" width="400" />
+  </div>
+</div>
 
 ## 🚀 Features
 
--   **Modern UI/UX**: Built with Next.js 15 and Framer Motion for smooth animations and transitions.
--   **Secure Authentication**:
-    -   Email/Password Login & Signup.
-    -   Google OAuth Integration.
-    -   Secure Session Management with JWT.
-    -   Password Reset functionality.
--   **AI Chat Interface**:
-    -   Real-time chat interactions.
-    -   Markdown support for responses.
-    -   Chat history persistence.
-    -   "Regenerate" response capability.
--   **Voice Capabilities**: Multi-language speech synthesis and recognition.
--   **Responsive Design**: Fully optimized for Desktop, Tablet, and Mobile.
+-   **🤖 Advanced AI Integration**: Powered by **Google Gemma 3** (Text) and **Gemma 3 Vision** (Image Analysis).
+-   **✨ Modern UI/UX**: Built with **Next.js 16**, **Tailwind CSS 4**, and **Framer Motion** for fluid animations.
+-   **🔐 Secure & Robust**: Full authentication system (Email/Password, Google OAuth) with secure session management.
+-   **💬 Rich Chat Experience**:
+    -   Real-time streaming responses with "typewriter" effect.
+    -   Markdown rendering for code and rich text.
+    -   Chat history with persistence.
+    -   Voice capabilities (Speech-to-Text & Text-to-Speech).
+-   **📱 Fully Responsive**: Optimized for generic desktop, tablet, and mobile experiences.
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 -   **Framework**: [Next.js 16](https://nextjs.org/) (React 19)
 -   **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
--   **Components**: Radix UI, Class Variance Authority (Shadcn UI patterns)
 -   **Animations**: [Framer Motion](https://www.framer.com/motion/)
--   **State/Forms**: React Hook Form, Zod
--   **Icons**: Lucide React
+-   **State Management**: React Hook Form, Zod
 
 ### Backend
 -   **Framework**: [FastAPI](https://fastapi.tiangolo.com/)
 -   **Language**: Python 3.10+
--   **Database ODM**: [Beanie](https://beanie-odm.dev/) (Async MongoDB ODM)
--   **Driver**: Motor (AsyncIO)
--   **AI/LLM**: LangChain, Google Gemini API
-    -   **Text Generation**: `gemma-3n-e4b-it` (Gemma 3)
-    -   **Image Analysis**: `gemma-3-12b-it` (Gemma 3 Vision)
--   **Testing**: Pytest
-
-### Database
--   **System**: MongoDB (Atlas or Local)
+-   **Database**: [MongoDB](https://www.mongodb.com/) with [Beanie ODM](https://beanie-odm.dev/)
+-   **AI Engine**: LangChain & Google Gemini API
 
 ## 📂 Project Structure
 
-```
-d:/sonic ai/
+```bash
+sonic-ai/
 ├── backend/                # Python FastAPI Backend
 │   ├── app/
-│   │   ├── core/           # Config, Security, Exceptions
-│   │   ├── models/         # Database Models (Beanie)
-│   │   ├── routes/         # API Endpoints (Auth, Chat)
-│   │   └── main.py         # Entry point
-│   └── requirements.txt    # Python dependencies
+│   │   ├── core/           # Config, Security
+│   │   ├── models/         # Database Models
+│   │   ├── routes/         # API Endpoints
+│   │   └── main.py         # App Entry Point
 ├── frontend/               # Next.js Frontend
 │   ├── src/
 │   │   ├── app/            # App Router Pages
-│   │   ├── components/     # Reusable UI Components
-│   │   └── hooks/          # Custom React Hooks
-│   └── package.json        # Node dependencies
-├── TESTING.md              # Detailed testing guide
-└── README.md               # Project documentation
+│   │   ├── components/     # UI Components
+│   │   ├── hooks/          # Custom Hooks
+└── docs/                   # Documentation & Assets
 ```
 
 ## 🏁 Getting Started
 
 ### Prerequisites
--   **Node.js** (v18+ recommended)
--   **Python** (v3.10+ recommended)
--   **MongoDB** (Local instance or Atlas URI)
+-   **Node.js** (v18+)
+-   **Python** (v3.10+)
+-   **MongoDB** URI
 
-### 1. Setup Backend
+### Quick Setup
 
-Navigate to the backend directory:
-```bash
-cd backend
-```
+1.  **Clone the repo**
+    ```bash
+    git clone https://github.com/shadabali1627/Sonic-AI.git
+    cd Sonic-AI
+    ```
 
-Create a virtual environment:
-```bash
-python -m venv .venv
-source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-```
+2.  **Setup Backend**
+    ```bash
+    cd backend
+    python -m venv .venv
+    source .venv/bin/activate  # Windows: .venv\Scripts\activate
+    pip install -r requirements.txt
+    python -m uvicorn app.main:app --reload
+    ```
 
-Install dependencies:
-```bash
-pip install -r requirements.txt
-```
-
-Create a `.env` file in `backend/` (see `.env.example` if available, or use the following template):
-```env
-MONGODB_URL=mongodb+srv://<user>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority
-DATABASE_NAME=sonic_ai_db
-SECRET_KEY=your_secret_key
-GOOGLE_CLIENT_ID=your_google_client_id
-GOOGLE_CLIENT_SECRET=your_google_client_secret
-GEMINI_API_KEY=your_gemini_api_key
-```
-
-Run the server:
-```bash
-python -m uvicorn app.main:app --reload --port 8000
-```
-The API will be available at `http://localhost:8000`. API Docs at `http://localhost:8000/docs`.
-
-### 2. Setup Frontend
-
-Navigate to the frontend directory:
-```bash
-cd frontend
-```
-
-Install dependencies:
-```bash
-npm install
-```
-
-Create a `.env.local` file in `frontend/`:
-```env
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
-```
-
-Run the development server:
-```bash
-npm run dev
-```
-The application will be available at `http://localhost:3000`.
+3.  **Setup Frontend**
+    ```bash
+    cd frontend
+    npm install
+    npm run dev
+    ```
 
 ## 🧪 Testing
-
-For detailed instructions on running backend and frontend tests, please refer to [TESTING.md](./TESTING.md).
+See [TESTING.md](./TESTING.md) for details on running tests.
 
 ## 🤝 Contributing
-
-1.  Fork the repository.
-2.  Create a new feature branch (`git checkout -b feature/amazing-feature`).
-3.  Commit your changes (`git commit -m 'Add some amazing feature'`).
-4.  Push to the branch (`git push origin feature/amazing-feature`).
-5.  Open a Pull Request.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
-
 [MIT](https://choosealicense.com/licenses/mit/)
