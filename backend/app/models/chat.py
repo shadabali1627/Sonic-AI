@@ -2,7 +2,7 @@ from typing import List, Optional
 from datetime import datetime
 from beanie import Document, Link
 from pydantic import BaseModel, Field
-from backend.app.models.user import User
+from app.models.user import User
 
 class Message(BaseModel):
     role: str # "user" or "assistant"

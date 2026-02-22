@@ -1,6 +1,6 @@
 import asyncio
 import httpx
-from backend.app.core.config import settings
+from app.core.config import settings
 
 async def list_models():
     api_key = settings.GEMINI_API_KEY

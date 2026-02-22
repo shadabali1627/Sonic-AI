@@ -10,10 +10,10 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from backend.app.core.config import settings
-from backend.app.database import init_db
-from backend.app.routes import auth, chat
-from backend.app.core.exceptions import validation_exception_handler
+from app.core.config import settings
+from app.database import init_db
+from app.routes import auth, chat
+from app.core.exceptions import validation_exception_handler
 
 # Logging Setup
 logging.basicConfig(level=logging.INFO)

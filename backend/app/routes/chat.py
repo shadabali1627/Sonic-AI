@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
 from fastapi.responses import StreamingResponse
 from typing import Optional
-from backend.app.services.chat_service import ChatService
-from backend.app.services.file_service import FileService
-from backend.app.routes.auth import get_current_user
-from backend.app.models.user import User
+from app.services.chat_service import ChatService
+from app.services.file_service import FileService
+from app.routes.auth import get_current_user
+from app.models.user import User
 
 router = APIRouter()
 chat_service = ChatService()
@@ -12,11 +12,11 @@ chat_service = ChatService()
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from typing import Optional, List
-from backend.app.services.chat_service import ChatService
-from backend.app.services.file_service import FileService
-from backend.app.routes.auth import get_current_user
-from backend.app.models.user import User
-from backend.app.models.chat import Chat, Message
+from app.services.chat_service import ChatService
+from app.services.file_service import FileService
+from app.routes.auth import get_current_user
+from app.models.user import User
+from app.models.chat import Chat, Message
 from beanie import PydanticObjectId
 import asyncio
 

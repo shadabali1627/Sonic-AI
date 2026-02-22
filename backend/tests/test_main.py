@@ -1,7 +1,7 @@
 import pytest
 from httpx import AsyncClient, ASGITransport
 from unittest.mock import patch, AsyncMock
-from backend.app.main import app
+from app.main import app
 
 @pytest.mark.asyncio
 async def test_root():

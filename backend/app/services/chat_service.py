@@ -1,7 +1,7 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage
 from typing import AsyncGenerator
-from backend.app.core.config import settings
+from app.core.config import settings
 
 class ChatService:
     def __init__(self):

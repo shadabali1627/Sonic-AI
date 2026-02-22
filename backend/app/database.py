@@ -1,8 +1,8 @@
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
-from backend.app.core.config import settings
-from backend.app.models.user import User
-from backend.app.models.chat import Chat
+from app.core.config import settings
+from app.models.user import User
+from app.models.chat import Chat
 
 async def init_db():
     client = AsyncIOMotorClient(settings.MONGODB_URL)

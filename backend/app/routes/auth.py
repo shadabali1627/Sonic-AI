@@ -2,10 +2,10 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, status, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from backend.app.models.user import User
-from backend.app.models.auth_models import UserCreate, Token, TokenData, ForgotPasswordRequest, ResetPasswordRequest, DirectResetRequest
-from backend.app.core.security import create_access_token, hash_password_manual, verify_password
-from backend.app.core.config import settings
+from app.models.user import User
+from app.models.auth_models import UserCreate, Token, TokenData, ForgotPasswordRequest, ResetPasswordRequest, DirectResetRequest
+from app.core.security import create_access_token, hash_password_manual, verify_password
+from app.core.config import settings
 from jose import jwt, JWTError
 from typing import Annotated
 import uuid

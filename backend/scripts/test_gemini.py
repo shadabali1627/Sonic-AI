@@ -1,5 +1,5 @@
 import asyncio
-from backend.app.services.chat_service import ChatService
+from app.services.chat_service import ChatService
 
 async def test_gemini():
     print("Testing Gemini API...")
