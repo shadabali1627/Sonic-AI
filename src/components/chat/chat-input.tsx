@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Paperclip, Mic, Send, X, FileText, Square, Sparkles, Image } from "lucide-react"
+import { Paperclip, Mic, Send, X, FileText, Square, Sparkles, Image, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -35,7 +35,9 @@ export function ChatInput({ onSendMessage, isLoading, value, onInputChange, onSt
         }
     }
     const fileInputRef = React.useRef<HTMLInputElement>(null)
-    const recognitionRef = React.useRef<any>(null)
+    const mediaRecorderRef = React.useRef<MediaRecorder | null>(null)
+    const audioChunksRef = React.useRef<Blob[]>([])
+    const [isTranscribing, setIsTranscribing] = React.useState(false)
     const textareaRef = React.useRef<HTMLTextAreaElement>(null)
 
     const isControlled = value !== undefined
@@ -68,77 +70,100 @@ export function ChatInput({ onSendMessage, isLoading, value, onInputChange, onSt
         inputValueRef.current = inputValue
     }, [inputValue])
 
-    // Initialize Speech Recognition
-    React.useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-            if (SpeechRecognition) {
-                const recognition = new SpeechRecognition()
-                recognition.lang = 'en-US'
-                recognition.continuous = true
-                recognition.interimResults = true
-
-                recognition.onresult = (event: any) => {
-                    let finalTranscript = ''
-                    for (let i = event.resultIndex; i < event.results.length; ++i) {
-                        if (event.results[i].isFinal) {
-                            finalTranscript += event.results[i][0].transcript
-                        }
-                    }
-                    if (finalTranscript) {
-                        // Use ref to get the latest value without triggering re-init
-                        const currentVal = inputValueRef.current
-                        const newVal = (currentVal ? currentVal + ' ' : '') + finalTranscript
-                        handleInputChange(newVal)
-                    }
-                }
-
-                recognition.onerror = (event: any) => {
-                    console.error("Speech recognition error", event.error)
-                    // Only stop if it's a fatal error or aborted
-                    if (event.error === 'not-allowed' || event.error === 'aborted') {
-                        setIsRecording(false)
-                    }
-                }
-
-                recognition.onstart = () => {
-                    setIsRecording(true)
-                }
-
-                recognition.onend = () => {
-                    setIsRecording(false)
-                }
-
-                recognitionRef.current = recognition
-            }
-        }
-
-        return () => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop()
-            }
-        }
-    }, []) // Empty dependency array - init once
-
-    // Toggle Recording
-    const toggleRecording = () => {
-        if (!recognitionRef.current) {
-            alert("Speech recognition not supported in this browser.")
-            return
-        }
-
+    // Transcribe recorded audio using backend Hugging Face Speech-to-Text API
+    const transcribeAudio = async (audioBlob: Blob) => {
+        setIsTranscribing(true)
         try {
-            if (isRecording) {
-                recognitionRef.current.stop()
-            } else {
-                recognitionRef.current.start()
+            const token = localStorage.getItem('access_token')
+            const formData = new FormData()
+            formData.append('audio', audioBlob, 'speech.webm')
+
+            const response = await fetch('/api/speech-to-text', {
+                method: 'POST',
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: formData
+            })
+
+            if (!response.ok) {
+                const errData = await response.json().catch(() => ({}));
+                const errMsg = errData.detail || 'Failed to transcribe audio';
+                alert(errMsg);
+                throw new Error(errMsg);
+            }
+
+            const data = await response.json()
+            if (data.text) {
+                const currentVal = inputValueRef.current
+                const newVal = (currentVal ? currentVal + ' ' : '') + data.text
+                handleInputChange(newVal)
             }
         } catch (err) {
-            console.error("Error toggling speech recognition:", err)
-            // If we get an error stating it's already started, we assume it's recording
-            setIsRecording(true)
+            console.error("Transcription error:", err)
+        } finally {
+            setIsTranscribing(false)
         }
     }
+
+    // Toggle Recording using MediaRecorder API
+    const toggleRecording = async () => {
+        if (isRecording) {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop()
+            }
+            setIsRecording(false)
+        } else {
+            try {
+                audioChunksRef.current = []
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+                
+                let mimeType = 'audio/webm'
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/ogg'
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = 'audio/mp4' // iOS Safari support
+                }
+                if (!MediaRecorder.isTypeSupported(mimeType)) {
+                    mimeType = '' // Let browser decide
+                }
+
+                const options = mimeType ? { mimeType } : undefined
+                const mediaRecorder = new MediaRecorder(stream, options)
+                mediaRecorderRef.current = mediaRecorder
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                        audioChunksRef.current.push(event.data)
+                    }
+                }
+
+                mediaRecorder.onstop = async () => {
+                    stream.getTracks().forEach(track => track.stop())
+                    const audioBlob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
+                    if (audioBlob.size > 0) {
+                        await transcribeAudio(audioBlob)
+                    }
+                }
+
+                mediaRecorder.start(250)
+                setIsRecording(true)
+            } catch (err) {
+                console.error("Error starting voice recording:", err)
+                alert("Could not access microphone. Please check permissions.")
+            }
+        }
+    }
+
+    // Stop recording on unmount
+    React.useEffect(() => {
+        return () => {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop()
+            }
+        }
+    }, [])
 
     const handleInputChange = (val: string) => {
         if (isControlled && onInputChange) {
@@ -159,8 +184,10 @@ export function ChatInput({ onSendMessage, isLoading, value, onInputChange, onSt
         if (!inputValue.trim() && files.length === 0) return
 
         // Stop recording if active
-        if (isRecording && recognitionRef.current) {
-            recognitionRef.current.stop()
+        if (isRecording) {
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop()
+            }
             setIsRecording(false)
         }
 
@@ -271,10 +298,14 @@ export function ChatInput({ onSendMessage, isLoading, value, onInputChange, onSt
                         value={inputValue}
                         onChange={(e) => handleInputChange(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={isRecording ? "Listening..." : imageMode ? "Describe the image you want to create..." : "Ask anything..."}
+                        placeholder={isTranscribing ? "Transcribing voice..." : isRecording ? "Listening..." : imageMode ? "Describe the image you want to create..." : "Ask anything..."}
+                        disabled={isTranscribing}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
-                        className="flex-1 max-h-[200px] bg-transparent py-2.5 text-[15px] leading-relaxed text-gray-100 placeholder:text-gray-500 focus:outline-none resize-none font-medium scrollbar-hide min-h-[44px] overflow-y-auto"
+                        className={cn(
+                            "flex-1 max-h-[200px] bg-transparent py-2.5 text-[15px] leading-relaxed text-gray-100 placeholder:text-gray-500 focus:outline-none resize-none font-medium scrollbar-hide min-h-[44px] overflow-y-auto",
+                            isTranscribing && "opacity-50 pointer-events-none"
+                        )}
                         rows={1}
                     />
 
@@ -295,6 +326,14 @@ export function ChatInput({ onSendMessage, isLoading, value, onInputChange, onSt
                                 className="h-10 w-10 shrink-0 rounded-full bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-400 border border-red-500/20 shadow-lg shadow-red-500/10 transition-all hover:scale-105"
                             >
                                 <Square className="h-4 w-4 fill-current" />
+                            </Button>
+                        ) : isTranscribing ? (
+                            <Button
+                                size="icon"
+                                disabled
+                                className="h-10 w-10 shrink-0 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                            >
+                                <Loader2 className="h-5 w-5 animate-spin" />
                             </Button>
                         ) : inputValue.trim() || files.length > 0 ? (
                             <Button
