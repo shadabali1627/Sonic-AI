@@ -1,4 +1,3 @@
-import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
 
 export class FileService {
@@ -6,6 +5,7 @@ export class FileService {
     const ext = filename.split('.').pop()?.toLowerCase();
 
     if (ext === 'pdf') {
+      const { PDFParse } = await import('pdf-parse');
       const parser = new PDFParse({ data: buffer });
       const data = await parser.getText();
       const text = data.text;
