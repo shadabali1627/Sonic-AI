@@ -17,7 +17,7 @@ export class ModelRouter {
     if (strategy === 'gemini' && this.GEMINI_API_KEY) {
       return {
         provider: 'gemini',
-        modelId: 'gemini-1.5-flash', // Keep standard models in existing SDK
+        modelId: 'gemma-4-31b-it', // Use gemma-31b
         apiKey: this.GEMINI_API_KEY
       };
     }
@@ -36,7 +36,7 @@ export class ModelRouter {
     if (hasImage && this.GEMINI_API_KEY) {
       return {
         provider: 'gemini',
-        modelId: 'gemini-1.5-flash',
+        modelId: 'gemma-4-31b-it',
         apiKey: this.GEMINI_API_KEY
       };
     }
@@ -53,7 +53,7 @@ export class ModelRouter {
     // Ultimate fallback to Gemini
     return {
       provider: 'gemini',
-      modelId: 'gemini-1.5-flash',
+      modelId: 'gemma-4-31b-it',
       apiKey: this.GEMINI_API_KEY
     };
   }

@@ -18,6 +18,60 @@ export class ChatService {
     });
   }
 
+  private async *generateGeminiResponse(
+    message: string,
+    imageBytes?: Buffer,
+    history: { role: string; content: string }[] = [],
+    systemInstruction: string = "",
+    modelId: string = "gemma-4-31b-it"
+  ): AsyncGenerator<string, void, unknown> {
+    try {
+      const client = new GoogleGenerativeAI(GEMINI_API_KEY);
+      const model = client.getGenerativeModel({
+        model: modelId,
+        systemInstruction: systemInstruction
+      });
+
+      const contents: any[] = [];
+      for (const msg of history) {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        });
+      }
+
+      const currentParts: any[] = [];
+      if (imageBytes) {
+        currentParts.push({
+          inlineData: {
+            data: imageBytes.toString("base64"),
+            mimeType: "image/jpeg"
+          }
+        });
+      }
+      currentParts.push({ text: message });
+
+      contents.push({
+        role: 'user',
+        parts: currentParts
+      });
+
+      const result = await model.generateContentStream({
+        contents
+      });
+
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          yield text;
+        }
+      }
+    } catch (error) {
+      console.error("Gemini Generation error:", error);
+      throw error;
+    }
+  }
+
   async *generateResponse(
     message: string,
     imageBytes?: Buffer,
@@ -28,57 +82,17 @@ export class ChatService {
 
     const activeModel = routedModel || ModelRouter.route(message, !!imageBytes, 'auto');
 
-    // 1. Gemini Provider Streaming
+    // 1. Gemini Provider Streaming (Direct Routing)
     if (activeModel.provider === 'gemini') {
       try {
-        const client = new GoogleGenerativeAI(activeModel.apiKey);
-        const model = client.getGenerativeModel({
-          model: activeModel.modelId,
-          systemInstruction: systemInstruction
-        });
-
-        const contents: any[] = [];
-        for (const msg of history) {
-          contents.push({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-          });
-        }
-
-        const currentParts: any[] = [];
-        if (imageBytes) {
-          currentParts.push({
-            inlineData: {
-              data: imageBytes.toString("base64"),
-              mimeType: "image/jpeg"
-            }
-          });
-        }
-        currentParts.push({ text: message });
-
-        contents.push({
-          role: 'user',
-          parts: currentParts
-        });
-
-        const result = await model.generateContentStream({
-          contents
-        });
-
-        for await (const chunk of result.stream) {
-          const text = chunk.text();
-          if (text) {
-            yield text;
-          }
-        }
+        yield* this.generateGeminiResponse(message, imageBytes, history, systemInstruction, activeModel.modelId);
       } catch (error) {
-        console.error("Gemini Generation error:", error);
         yield "I apologize, but I'm currently unable to connect to the Gemini service. Please try again in a moment.";
       }
       return;
     }
 
-    // 2. OpenRouter Provider Streaming
+    // 2. OpenRouter Provider Streaming with Gemma Fallback
     const messages = [
       { role: "system", content: systemInstruction },
       ...history.map(msg => ({
@@ -87,6 +101,9 @@ export class ChatService {
       })),
       { role: "user", content: message }
     ];
+
+    let openRouterFailed = false;
+    let yieldedAny = false;
 
     try {
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -107,14 +124,12 @@ export class ChatService {
       if (!response.ok) {
         const errText = await response.text();
         console.error("OpenRouter API error:", errText);
-        yield "I apologize, but I'm currently unable to connect to the AI service. Please try again in a moment.";
-        return;
+        throw new Error(`OpenRouter status ${response.status}: ${errText}`);
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
-        yield "Error reading stream.";
-        return;
+        throw new Error("Failed to get stream reader from OpenRouter response.");
       }
 
       const decoder = new TextDecoder("utf-8");
@@ -140,6 +155,7 @@ export class ChatService {
               const text = data.choices?.[0]?.delta?.content;
               if (text) {
                 yield text;
+                yieldedAny = true;
               }
             } catch (e) {
               console.error("Error parsing stream line:", cleanLine, e);
@@ -148,8 +164,20 @@ export class ChatService {
         }
       }
     } catch (error) {
-      console.error("AI Generation error:", error);
-      yield "I apologize, but I'm currently unable to connect to the AI service. Please try again in a moment.";
+      console.error("OpenRouter primary generation failed. Initiating fallback to Gemma-31b...", error);
+      openRouterFailed = true;
+    }
+
+    // Trigger fallback to Gemma-31b (using Gemini SDK) if OpenRouter failed
+    if (openRouterFailed) {
+      try {
+        yield* this.generateGeminiResponse(message, imageBytes, history, systemInstruction, "gemma-4-31b-it");
+      } catch (geminiError) {
+        console.error("Gemma-31b fallback failed:", geminiError);
+        if (!yieldedAny) {
+          yield "I apologize, but I'm currently unable to connect to the AI service. Please try again in a moment.";
+        }
+      }
     }
   }
 }
