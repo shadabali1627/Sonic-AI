@@ -1,0 +1,217 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --radius: 0.5rem;
+
+    /* 60% Base (Void) */
+    --background: 240 30% 4%;
+    --foreground: 240 20% 98%;
+    --void-lighter: 240 25% 8%;
+
+    /* 30% Surface (Glass) */
+    --card: 240 20% 95%;
+    /* Opacity handled in utility */
+    --card-foreground: 240 20% 98%;
+    --popover: 240 25% 8%;
+    --popover-foreground: 240 20% 98%;
+    --muted: 240 20% 20%;
+    --muted-foreground: 240 20% 70%;
+
+    /* 10% Accent (Neon) */
+    --primary: 190 100% 50%;
+    /* Neon Cyan */
+    --primary-foreground: 240 30% 4%;
+    --secondary: 270 100% 60%;
+    /* Electric Purple */
+    --secondary-foreground: 240 20% 98%;
+    --accent: 190 100% 50%;
+    --accent-foreground: 240 30% 4%;
+
+    /* Semantic Colors */
+    --success: 150 60% 45%;
+    --warning: 40 90% 60%;
+    --destructive: 350 80% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 20% 20%;
+    --input: 240 20% 20%;
+    --ring: 190 100% 50%;
+
+    /* Fluid Typography & Spacing */
+    --fs-h1: clamp(2rem, 5vw + 1rem, 3.5rem);
+    --fs-h2: clamp(1.5rem, 3vw + 1rem, 2.5rem);
+    --fs-body: clamp(0.875rem, 0.5vw + 0.75rem, 1rem);
+    --spacing-container: clamp(1rem, 5vw, 3rem);
+  }
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: var(--font-inter), sans-serif;
+  font-size: var(--fs-body);
+  overflow-x: hidden;
+  /* Multi-layered ambient cosmic background */
+  background-image:
+    radial-gradient(circle at 10% 40%, hsla(272, 85%, 60%, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 90% 20%, hsla(184, 100%, 50%, 0.07) 0%, transparent 45%),
+    radial-gradient(circle at 50% 80%, hsla(330, 100%, 50%, 0.04) 0%, transparent 50%);
+  background-attachment: fixed;
+}
+
+/* Typography Utilities */
+h1 {
+  font-size: var(--fs-h1);
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+h2 {
+  font-size: var(--fs-h2);
+  font-family: var(--font-outfit), sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h3,
+h4,
+.font-heading {
+  font-family: var(--font-outfit), sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Cosmic Nebula Animations */
+@keyframes nebula-pulse {
+  0% {
+    transform: translate(0px, 0px) scale(1) rotate(0deg);
+    filter: blur(120px) opacity(0.8);
+  }
+  33% {
+    transform: translate(40px, -60px) scale(1.15) rotate(120deg);
+    filter: blur(140px) opacity(1);
+  }
+  66% {
+    transform: translate(-30px, 30px) scale(0.9) rotate(240deg);
+    filter: blur(110px) opacity(0.7);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1) rotate(360deg);
+    filter: blur(120px) opacity(0.8);
+  }
+}
+
+@keyframes nebula-pulse-reverse {
+  0% {
+    transform: translate(0px, 0px) scale(1.1) rotate(360deg);
+    filter: blur(100px) opacity(0.8);
+  }
+  50% {
+    transform: translate(-50px, 40px) scale(0.85) rotate(180deg);
+    filter: blur(120px) opacity(1);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1.1) rotate(0deg);
+    filter: blur(100px) opacity(0.8);
+  }
+}
+
+.animate-nebula-slow {
+  animation: nebula-pulse 20s infinite alternate ease-in-out;
+}
+
+.animate-nebula-reverse {
+  animation: nebula-pulse-reverse 25s infinite alternate ease-in-out;
+}
+
+/* Shake Animation for Validation Errors */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+/* Shimmer Animation for Image Generation Skeleton */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Premium Elevation & Glass */
+.glass-card {
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card-hover:hover {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.55), 0 0 20px 2px rgba(6, 182, 212, 0.05);
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.elevation-card {
+  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.5);
+}
+
+.elevation-floating {
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.15);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #00F2FF 0%, #7000FF 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Custom Scrollbar - Ultra Thin */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 99px;
+  transition: background-color 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+/* Utilities */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}

@@ -1,69 +1,57 @@
-# OS files
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
 .DS_Store
-Thumbs.db
-db.lock
-*.tmp
-*.bak
-*.swp
-*.log
+*.pem
 
-# IDEs and Editors
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-.project
-.pydevproject
-.settings/
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-.venv/
-venv/
-ENV/
-env/
-
-# Node/Frontend
-node_modules/
-dist/
-dist-ssr/
-*.local
-.eslintcache
-.stylelintcache
-.npm
-.yarn-error.log
-.pnpm-debug.log
+# env files (can opt-in for committing if needed)
 .env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
+.env*.local
+.env*
 
-# Databases/Storage
-*.db
-*.sqlite3
-postgres-data/
-mongo-data/
+# vercel
+.vercel
 
-# Project Specific
-backend/app/static/uploads/
-fix_imports.py
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# IDEs and local configurations
+.idea/
+.vscode/
+
+# Python virtual environment
+.venv/
+venv/
+ENV/
+
