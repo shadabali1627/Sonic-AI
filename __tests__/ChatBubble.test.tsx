@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { ChatBubble } from '../src/components/chat/chat-bubble'
-import { vi, describe, it, expect, beforeEach, beforeAll, afterAll } from 'vitest'
+import { vi, describe, it, expect, beforeEach } from 'vitest'
 
 // Mock dependencies
 vi.mock('react-markdown', () => ({
@@ -15,85 +15,72 @@ vi.mock('franc-min', () => ({
     franc: () => 'eng'
 }))
 
-// Mock Audio
-const mockPlay = vi.fn().mockResolvedValue(undefined)
-const mockPause = vi.fn()
+// Mock SpeechSynthesis
+const mockSpeak = vi.fn()
+const mockCancel = vi.fn()
 
-class MockAudio {
-    src = ''
-    onended: (() => void) | null = null
-    onerror: (() => void) | null = null
-    play = mockPlay
-    pause = mockPause
+Object.defineProperty(window, 'speechSynthesis', {
+    value: {
+        speak: mockSpeak,
+        cancel: mockCancel,
+        onvoiceschanged: null,
+        paused: false,
+        pending: false,
+        speaking: false,
+        resume: vi.fn(),
+        pause: vi.fn(),
+    },
+    writable: true
+})
+
+// Mock SpeechSynthesisUtterance constructor
+class MockSpeechSynthesisUtterance {
+    text: string
+    lang: string
+    onend: (() => void) | null
+    onerror: (() => void) | null
+
+    constructor(text: string) {
+        this.text = text
+        this.lang = ''
+        this.onend = null
+        this.onerror = null
+    }
 }
 
-// Mock fetch
-const mockFetch = vi.fn()
+global.SpeechSynthesisUtterance = MockSpeechSynthesisUtterance as any
 
 describe('ChatBubble Voice-First Verification', () => {
-    const originalAudio = global.Audio
-    const originalFetch = global.fetch
-
-    beforeAll(() => {
-        global.Audio = MockAudio as any
-        global.fetch = mockFetch
-        
-        if (typeof URL.createObjectURL === 'undefined') {
-            URL.createObjectURL = vi.fn(() => 'blob:mock-url')
-        }
-        if (typeof URL.revokeObjectURL === 'undefined') {
-            URL.revokeObjectURL = vi.fn()
-        }
-    })
-
-    afterAll(() => {
-        global.Audio = originalAudio
-        global.fetch = originalFetch
-    })
-
     beforeEach(() => {
         vi.clearAllMocks()
-        mockFetch.mockImplementation(() => {
-            return Promise.resolve({
-                ok: true,
-                blob: () => Promise.resolve(new Blob(['mock-audio'], { type: 'audio/wav' })),
-            } as Response)
-        })
     })
 
-    it('strips markdown before speaking', async () => {
+    it('strips markdown before speaking', () => {
         const markdownText = "**Hello** *world*! This is a [link](https://example.com) and `code`."
         const expectedSpokenText = "Hello world! This is a link and code."
 
         render(<ChatBubble role="assistant" content={markdownText} />)
 
         const speakButton = screen.getByTitle('Read aloud')
-        
-        await act(async () => {
-            fireEvent.click(speakButton)
-        })
+        fireEvent.click(speakButton)
 
-        expect(mockFetch).toHaveBeenCalledTimes(1)
-        const fetchArgs = mockFetch.mock.calls[0]
-        expect(fetchArgs[0]).toBe('/api/text-to-speech')
-        expect(JSON.parse(fetchArgs[1].body)).toEqual({ text: expectedSpokenText })
+        expect(mockSpeak).toHaveBeenCalledTimes(1)
+
+        // Check the utterance text
+        const utterance = mockSpeak.mock.calls[0][0]
+        expect(utterance.text).toBe(expectedSpokenText)
     })
 
-    it('correctly handles headers and lists in speech', async () => {
+    it('correctly handles headers and lists in speech', () => {
         const complexMarkdown = "# Header\n- Item 1\n- Item 2"
         const expectedSpokenText = "Header\nItem 1\nItem 2"
 
         render(<ChatBubble role="assistant" content={complexMarkdown} />)
 
         const speakButton = screen.getByTitle('Read aloud')
-        
-        await act(async () => {
-            fireEvent.click(speakButton)
-        })
+        fireEvent.click(speakButton)
 
-        expect(mockFetch).toHaveBeenCalledTimes(1)
-        const fetchArgs = mockFetch.mock.calls[0]
-        expect(fetchArgs[0]).toBe('/api/text-to-speech')
-        expect(JSON.parse(fetchArgs[1].body)).toEqual({ text: expectedSpokenText })
+        const utterance = mockSpeak.mock.calls[0][0]
+        expect(utterance.text).toBe(expectedSpokenText)
     })
 })

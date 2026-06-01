@@ -106,33 +106,18 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
     const [copied, setCopied] = React.useState(false)
     const [isModalOpen, setIsModalOpen] = React.useState(false)
 
-    const audioRef = React.useRef<HTMLAudioElement | null>(null)
-    const audioUrlRef = React.useRef<string | null>(null)
-
-    const cleanupAudio = React.useCallback(() => {
-        if (audioRef.current) {
-            try {
-                audioRef.current.pause()
-            } catch (e) {
-                console.error('Error pausing audio:', e)
-            }
-            audioRef.current = null
-        }
-        if (audioUrlRef.current) {
-            try {
-                URL.revokeObjectURL(audioUrlRef.current)
-            } catch (e) {
-                console.error('Error revoking URL:', e)
-            }
-            audioUrlRef.current = null
-        }
-    }, [])
-
     React.useEffect(() => {
         return () => {
-            cleanupAudio()
+            if (typeof window !== 'undefined' && (window as any).__activeSpeechCleanup) {
+                try {
+                    window.speechSynthesis.cancel()
+                } catch (e) {}
+                try {
+                    (window as any).__activeSpeechCleanup()
+                } catch (e) {}
+            }
         }
-    }, [cleanupAudio])
+    }, [])
 
     const isImageMessage = type === 'image'
 
@@ -178,84 +163,93 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
             .trim();
     }
 
-    const handleSpeak = async () => {
+    const handleSpeak = () => {
+        if (typeof window === 'undefined') return
+
         if (isSpeaking) {
-            cleanupAudio()
+            try {
+                window.speechSynthesis.cancel()
+            } catch (e) {}
             setIsSpeaking(false)
-            if (typeof window !== 'undefined' && (window as any).__activeAudio) {
-                (window as any).__activeAudio = null
+            if ((window as any).__activeSpeechCleanup) {
+                (window as any).__activeSpeechCleanup = null
             }
         } else {
+            // 1. Cancel any active speech globally and reset previous speaking states
+            try {
+                window.speechSynthesis.cancel()
+            } catch (e) {}
+            if (typeof (window as any).__activeSpeechCleanup === 'function') {
+                try {
+                    (window as any).__activeSpeechCleanup()
+                } catch (e) {}
+            }
+
             const cleanText = stripMarkdown(content)
             if (!cleanText) return
 
-            // 1. Stop any currently playing audio globally
-            if (typeof window !== 'undefined' && (window as any).__activeAudio) {
-                try {
-                    (window as any).__activeAudio.pause()
-                    if (typeof (window as any).__activeAudio.__cleanup === 'function') {
-                        (window as any).__activeAudio.__cleanup()
-                    }
-                } catch (e) {
-                    console.error('Error stopping previous audio:', e)
-                }
+            const utterance = new SpeechSynthesisUtterance(cleanText)
+            
+            // Auto-detect language using the existing franc-min library
+            const getLanguageCode = (text: string) => {
+                const langMap: { [key: string]: string } = {
+                    'eng': 'en-US',
+                    'spa': 'es-ES',
+                    'fra': 'fr-FR',
+                    'deu': 'de-DE',
+                    'ita': 'it-IT',
+                    'por': 'pt-PT',
+                    'rus': 'ru-RU',
+                    'zho': 'zh-CN',
+                    'jpn': 'ja-JP',
+                    'hin': 'hi-IN',
+                    'urd': 'ur-PK',
+                };
+                const supportedLangs = Object.keys(langMap);
+                const langCode = franc(text, { only: supportedLangs });
+                return langMap[langCode] || 'en-US';
             }
 
-            // 2. Instantiate audio synchronously to bypass iOS Safari autoplay restrictions
-            const audio = new Audio()
-            audioRef.current = audio
-            setIsSpeaking(true)
+            utterance.lang = getLanguageCode(cleanText)
 
-            if (typeof window !== 'undefined') {
-                (window as any).__activeAudio = audio
-                ;(audio as any).__cleanup = () => {
-                    cleanupAudio()
-                    setIsSpeaking(false)
-                }
-            }
-
-            try {
-                const token = localStorage.getItem('access_token')
-                const response = await fetch('/api/text-to-speech', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
-                    body: JSON.stringify({ text: cleanText })
-                })
-
-                if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}))
-                    throw new Error(errData.detail || 'Failed to synthesize speech')
-                }
-
-                const blob = await response.blob()
-                const url = URL.createObjectURL(blob)
-                audioUrlRef.current = url
-
-                // Check if we were cancelled or changed during the async fetch
-                if (audioRef.current !== audio) {
-                    URL.revokeObjectURL(url)
-                    return
-                }
-
-                audio.src = url
-                audio.onended = () => {
-                    cleanupAudio()
-                    setIsSpeaking(false)
-                }
-                audio.onerror = () => {
-                    cleanupAudio()
-                    setIsSpeaking(false)
-                }
-
-                await audio.play()
-            } catch (error: any) {
-                console.error('Speech synthesis error:', error)
-                cleanupAudio()
+            const cleanup = () => {
                 setIsSpeaking(false)
-                alert(error.message || 'Speech synthesis failed')
+                if ((window as any).__activeSpeechCleanup === cleanup) {
+                    (window as any).__activeSpeechCleanup = null
+                }
+            }
+
+            utterance.onend = cleanup;
+            utterance.onerror = cleanup;
+
+            // Register this cleanup globally
+            (window as any).__activeSpeechCleanup = cleanup;
+
+            setIsSpeaking(true)
+            try {
+                window.speechSynthesis.speak(utterance)
+            } catch (e) {
+                console.error('SpeechSynthesis speak failed:', e)
+                cleanup()
+                alert('Speech synthesis failed to start')
+            }
+
+            // Workaround for Safari iOS bug where speech randomly pauses
+            const resumeInterval = setInterval(() => {
+                if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
+                    try {
+                        window.speechSynthesis.resume()
+                    } catch (e) {}
+                } else {
+                    clearInterval(resumeInterval)
+                }
+            }, 5000)
+
+            // Wrap cleanup to clear interval
+            const originalCleanup = cleanup;
+            (window as any).__activeSpeechCleanup = () => {
+                clearInterval(resumeInterval)
+                originalCleanup()
             }
         }
     }
