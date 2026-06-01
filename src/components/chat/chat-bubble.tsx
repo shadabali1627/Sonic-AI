@@ -106,6 +106,33 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
     const [copied, setCopied] = React.useState(false)
     const [isModalOpen, setIsModalOpen] = React.useState(false)
 
+    const openModal = React.useCallback(() => {
+        if (typeof window !== 'undefined') {
+            window.history.pushState({ modalOpen: true }, "")
+        }
+        setIsModalOpen(true)
+    }, [])
+
+    const closeModal = React.useCallback(() => {
+        if (typeof window !== 'undefined' && window.history.state?.modalOpen) {
+            window.history.back()
+        } else {
+            setIsModalOpen(false)
+        }
+    }, [])
+
+    React.useEffect(() => {
+        if (isModalOpen) {
+            const handlePopState = () => {
+                setIsModalOpen(false)
+            }
+            window.addEventListener("popstate", handlePopState)
+            return () => {
+                window.removeEventListener("popstate", handlePopState)
+            }
+        }
+    }, [isModalOpen])
+
     React.useEffect(() => {
         return () => {
             if (typeof window !== 'undefined' && (window as any).__activeSpeechCleanup) {
@@ -293,7 +320,7 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
                     {isImageMessage && imageUrl && !isGeneratingImage && (
                         <div className="space-y-3 mb-4">
                             <div 
-                                onClick={() => setIsModalOpen(true)}
+                                onClick={openModal}
                                 className="relative group/img w-full max-w-[400px] rounded-2xl overflow-hidden border border-white/10 shadow-lg hover:shadow-purple-500/20 hover:border-purple-500/30 transition-all duration-500 cursor-zoom-in"
                             >
                                 <img
@@ -429,7 +456,7 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        onClick={() => setIsModalOpen(false)}
+                        onClick={closeModal}
                         className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md p-4 sm:p-6 cursor-zoom-out"
                     >
                         {/* Top bar with actions */}
@@ -442,7 +469,7 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
                                 <Download className="h-5 w-5" />
                             </button>
                             <button
-                                onClick={() => setIsModalOpen(false)}
+                                onClick={closeModal}
                                 className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 flex items-center justify-center text-white hover:text-red-400 hover:scale-110 transition-all duration-300 shadow-md cursor-pointer"
                                 title="Close preview"
                             >
