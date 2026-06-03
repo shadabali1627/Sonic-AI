@@ -58,4 +58,47 @@ export class CloudinaryService {
       throw error;
     }
   }
+
+  /**
+   * Uploads any file (image, PDF, document) to Cloudinary using the auto-endpoint.
+   */
+  async uploadFile(base64DataUri: string): Promise<string> {
+    if (!this.cloudName || !this.apiKey || !this.apiSecret) {
+      throw new Error('Cloudinary is not configured. Please check your environment variables.');
+    }
+
+    try {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const folder = 'sonic_ai';
+
+      // Generate Cloudinary Signature
+      const stringToSign = `folder=${folder}&timestamp=${timestamp}${this.apiSecret}`;
+      const signature = crypto.createHash('sha1').update(stringToSign).digest('hex');
+
+      // Create FormData
+      const formData = new FormData();
+      formData.append('file', base64DataUri);
+      formData.append('api_key', this.apiKey);
+      formData.append('timestamp', timestamp.toString());
+      formData.append('signature', signature);
+      formData.append('folder', folder);
+
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${this.cloudName}/auto/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Cloudinary API error:', errorText);
+        throw new Error(`Cloudinary upload failed (HTTP ${response.status})`);
+      }
+
+      const responseData = await response.json();
+      return responseData.secure_url;
+    } catch (error: any) {
+      console.error('Cloudinary uploadFile service error:', error);
+      throw error;
+    }
+  }
 }

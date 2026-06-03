@@ -1,74 +1,46 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import { ModelRouter } from "@/lib/guardrails/model-router";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export class ChatService {
-  private textModel: any;
-  private visionModel: any;
+  constructor() {}
 
-  constructor() {
-    // Declared but currently unused (routing to OpenRouter instead)
-    this.textModel = genAI.getGenerativeModel({ 
-      model: "gemma-4-31b-it",
-    });
-    this.visionModel = genAI.getGenerativeModel({ 
-      model: "gemma-4-31b-it", 
-    });
-  }
-
-  private async *generateGeminiResponse(
-    message: string,
-    imageBytes?: Buffer,
-    history: { role: string; content: string }[] = [],
-    systemInstruction: string = "",
-    modelId: string = "gemma-4-31b-it"
-  ): AsyncGenerator<string, void, unknown> {
+  /**
+   * Describes the uploaded image using gemini-2.5-flash (with a fallback to gemini-2.0-flash).
+   */
+  private async describeImageWithGemini(imageBytes: Buffer): Promise<string> {
     try {
-      const client = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = client.getGenerativeModel({
-        model: modelId,
-        systemInstruction: systemInstruction
-      });
-
-      const contents: any[] = [];
-      for (const msg of history) {
-        contents.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        });
-      }
-
-      const currentParts: any[] = [];
-      if (imageBytes) {
-        currentParts.push({
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+      const result = await model.generateContent([
+        {
           inlineData: {
             data: imageBytes.toString("base64"),
             mimeType: "image/jpeg"
           }
-        });
-      }
-      currentParts.push({ text: message });
-
-      contents.push({
-        role: 'user',
-        parts: currentParts
-      });
-
-      const result = await model.generateContentStream({
-        contents
-      });
-
-      for await (const chunk of result.stream) {
-        const text = chunk.text();
-        if (text) {
-          yield text;
-        }
-      }
+        },
+        "Describe this image in detail."
+      ]);
+      return result.response.text();
     } catch (error) {
-      console.error("Gemini Generation error:", error);
-      throw error;
+      console.error("Failed to describe image with Gemini-2.5-flash:", error);
+      try {
+        const fallbackModel = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const result = await fallbackModel.generateContent([
+          {
+            inlineData: {
+              data: imageBytes.toString("base64"),
+              mimeType: "image/jpeg"
+            }
+          },
+          "Describe this image in detail."
+        ]);
+        return result.response.text();
+      } catch (fallbackError) {
+        console.error("Fallback vision description failed:", fallbackError);
+        return "An uploaded image (unable to generate description).";
+      }
     }
   }
 
@@ -78,102 +50,107 @@ export class ChatService {
     history: { role: string; content: string }[] = [],
     routedModel?: any
   ): AsyncGenerator<string, void, unknown> {
-    const systemInstruction = `You are Sonic AI, a professional voice-first AI assistant. You are communicating with a user on a narrow mobile interface. You must respond with extreme brevity, keeping all responses under three sentences and getting to the point immediately. You must write in a single, cohesive paragraph without any bullet points, numbered lists, double line breaks, or filler introductory phrases. Ensure your response is highly conversational and easy to read aloud by a text-to-speech engine. Do not include any internal reasoning, draft plans, outlines, or planning steps. Output only the direct conversational response to the user.`;
+    const systemInstruction = `You are Sonic AI, a professional and helpful AI assistant. You must structure all text outputs to ensure they are visually scannable, structurally predictable, and fully optimized for real-time streaming Markdown UI components. Adhere to the following structural engineering rules strictly:
+
+## 1. Visual Hierarchy & Typography
+- **Semantic Headers Only:** Use standard Markdown header tokens (## or ###) for all primary and secondary sections.
+- **Header Prohibition:** NEVER use bolded inline text as a makeshift header (e.g., Do NOT write **Step 1: Initialization** on its own line). Always use ### Step 1: Initialization.
+- **Nesting Cap:** Do not exceed three levels of header depth (##, ###, ####). Keep section headers short, objective, and punchy.
+
+## 2. Whitespace & Streaming Buffer Safety
+- **Double Newline Isolation:** You must insert exactly two literal newlines (\\n\\n) BEFORE and AFTER every single structural block element. This includes headers, unordered lists, ordered lists, blockquotes, and code blocks.
+- **Example of Correct Spacing:**
+  Text paragraph ending here.\\n\\n
+  ### Next Operational Phase\\n\\n
+  - **Item one:** Description here...
+
+## 3. Density Control & Scannability
+- **The 4-Line Paragraph Rule:** Never generate a block of continuous prose longer than 4 lines. If an explanation requires more length, break it up using bullet points or sub-sections.
+- **Scannable Bullets:** When utilizing bulleted lists, bold the first 2 to 4 words of the bullet point to summarize the core concept before expanding on it.
+  - Example: "- **State Management:** The engine uses immutable states..."
+- **Judicious Bolding:** Use bold text (**text**) only for critical constraints, parameters, or definitive terms. Do not bold more than 15% of the words in a single paragraph.
+
+## 4. Technical & Code Formatting
+- **Inline Elements:** Wrap all variable names, class names, API endpoints, file paths, and technical keys in single backticks (e.g., \`useState\`, \`/api/v1/stream\`).
+- **Fenced Blocks:** Always specify the exact language identifier for multi-line code blocks (e.g., \`\`\`tsx, \`\`\`python). Ensure the closing triple backticks always reside on their own line isolated by \\n\\n.
+
+## 5. Strict Structural Prohibitions
+- **No Raw HTML:** Never emit raw HTML tags (e.g., <br />, <b>, <span>) unless explicitly requested by the user. Rely entirely on standard Markdown tokens.
+- **No Trailing Fragments:** Do not open an emphasis tag (** or \`) unless you intend to close it within the same logical sentence. Never leave syntax tags dangling across long processing breaks.
+
+## 6. Zero Meta-Commentary Policy
+- **Internal Thinking:** If you absolutely must plan, draft, or check constraints before answering, you MUST enclose ALL of your planning text entirely within <think> and </think> XML tags. DO NOT use markdown code blocks (\`\`\`) for your thought process. Anything inside <think> tags will be filtered and hidden from the user.
+- **Direct Answer Only:** After your <think> block (if any), your visible output must be 100% final, beautifully formatted markdown content intended for the end user. Start your response IMMEDIATELY. Do not output anything like "* Topic: ..." or "* Constraint Check: ..." outside of the <think> tags.
+
+Output only the direct, beautifully formatted markdown response to the user. Do not include any meta-commentary, constraint checklists, drafts, internal reasoning, planning steps, or introductory prefixes (such as "User question: ...").`;
 
     const activeModel = routedModel || ModelRouter.route(message, !!imageBytes, 'auto');
 
-    // 1. Gemini Provider Streaming (Direct Routing)
-    if (activeModel.provider === 'gemini') {
+    let promptMessage = message;
+    if (imageBytes) {
       try {
-        yield* this.generateGeminiResponse(message, imageBytes, history, systemInstruction, activeModel.modelId);
-      } catch (error) {
-        yield "I apologize, but I'm currently unable to connect to the Gemini service. Please try again in a moment.";
+        const imageDescription = await this.describeImageWithGemini(imageBytes);
+        promptMessage = `[Image Description: ${imageDescription}]\n\n${message}`;
+      } catch (err) {
+        console.error("Error generating image description:", err);
       }
-      return;
     }
 
-    // 2. OpenRouter Provider Streaming with Gemma Fallback
-    const messages = [
-      { role: "system", content: systemInstruction },
-      ...history.map(msg => ({
-        role: msg.role === "assistant" ? "assistant" : "user",
-        content: msg.content
-      })),
-      { role: "user", content: message }
-    ];
-
-    let openRouterFailed = false;
+    let primaryFailed = false;
     let yieldedAny = false;
 
+    // Primary streaming logic using Gemma via Gemini API
     try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${activeModel.apiKey}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "http://localhost:3000",
-          "X-Title": "Sonic AI"
-        },
-        body: JSON.stringify({
-          model: activeModel.modelId,
-          messages: messages,
-          stream: true
-        })
+      const model = genAI.getGenerativeModel({
+        model: activeModel.modelId,
+        systemInstruction: systemInstruction,
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.error("OpenRouter API error:", errText);
-        throw new Error(`OpenRouter status ${response.status}: ${errText}`);
-      }
+      const chat = model.startChat({
+        history: history.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        }))
+      });
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        throw new Error("Failed to get stream reader from OpenRouter response.");
-      }
-
-      const decoder = new TextDecoder("utf-8");
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          const cleanLine = line.trim();
-          if (!cleanLine) continue;
-          if (cleanLine === "data: [DONE]") continue;
-
-          if (cleanLine.startsWith("data: ")) {
-            const dataStr = cleanLine.slice(6);
-            try {
-              const data = JSON.parse(dataStr);
-              const text = data.choices?.[0]?.delta?.content;
-              if (text) {
-                yield text;
-                yieldedAny = true;
-              }
-            } catch (e) {
-              console.error("Error parsing stream line:", cleanLine, e);
-            }
-          }
+      const resultStream = await chat.sendMessageStream(promptMessage);
+      for await (const chunk of resultStream.stream) {
+        const text = chunk.text();
+        if (text) {
+          yield text;
+          yieldedAny = true;
         }
       }
     } catch (error) {
-      console.error("OpenRouter primary generation failed. Initiating fallback to Gemma-31b...", error);
-      openRouterFailed = true;
+      console.error("Gemini primary generation failed. Initiating fallback...", error);
+      primaryFailed = true;
     }
 
-    // Trigger fallback to Gemma-31b (using Gemini SDK) if OpenRouter failed
-    if (openRouterFailed) {
+    // Fallback: try using gemini-2.5-flash if primary fails
+    if (primaryFailed) {
       try {
-        yield* this.generateGeminiResponse(message, imageBytes, history, systemInstruction, "gemma-4-31b-it");
-      } catch (geminiError) {
-        console.error("Gemma-31b fallback failed:", geminiError);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.5-flash',
+          systemInstruction: systemInstruction,
+        });
+
+        const chat = model.startChat({
+          history: history.map(msg => ({
+            role: msg.role === 'assistant' ? 'model' : 'user',
+            parts: [{ text: msg.content }]
+          }))
+        });
+
+        const resultStream = await chat.sendMessageStream(promptMessage);
+        for await (const chunk of resultStream.stream) {
+          const text = chunk.text();
+          if (text) {
+            yield text;
+            yieldedAny = true;
+          }
+        }
+      } catch (fallbackError) {
+        console.error("Gemini fallback failed:", fallbackError);
         if (!yieldedAny) {
           yield "I apologize, but I'm currently unable to connect to the AI service. Please try again in a moment.";
         }
@@ -181,4 +158,3 @@ export class ChatService {
     }
   }
 }
-

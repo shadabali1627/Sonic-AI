@@ -45,10 +45,6 @@ export function Sidebar({
         currentTitle: ""
     })
 
-    React.useEffect(() => {
-        loadChats()
-    }, [isOpen, isDesktopOpen])
-
     const loadChats = async () => {
         try {
             const data = await getChats()
@@ -66,6 +62,10 @@ export function Sidebar({
             console.error("Failed to load user", e)
         }
     }
+
+    React.useEffect(() => {
+        loadChats()
+    }, [isOpen, isDesktopOpen])
 
     React.useEffect(() => {
         if (typeof window !== 'undefined' && localStorage.getItem('access_token')) {

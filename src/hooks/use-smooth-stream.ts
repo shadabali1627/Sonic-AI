@@ -4,22 +4,21 @@ import { useState, useEffect, useRef } from 'react'
 
 export function useSmoothStream(text: string, isStreaming: boolean, speed = 10) {
     const [displayedText, setDisplayedText] = useState(isStreaming ? "" : text)
-    const indexRef = useRef(0)
+    const indexRef = useRef(isStreaming ? 0 : text.length)
     const targetTextRef = useRef(text)
 
-    // Update target text without triggering effect re-run
+    // Adjust state when prop changes during render phase (React-approved pattern)
+    if (!isStreaming && displayedText !== text) {
+        setDisplayedText(text)
+    }
+
+    // Update target text and index ref without mutating during render
     useEffect(() => {
         targetTextRef.current = text
-    }, [text])
-
-    // Handle initial state or non-streaming updates
-    useEffect(() => {
-        if (!isStreaming && displayedText !== text) {
-            setDisplayedText(text)
+        if (!isStreaming) {
             indexRef.current = text.length
         }
-        // eslint-disable-next-line
-    }, [isStreaming, text, displayedText])
+    }, [text, isStreaming])
 
     useEffect(() => {
         if (!isStreaming) return

@@ -34,29 +34,9 @@ export class OutputValidator {
     // SSN
     processed = processed.replace(/\b\d{3}-\d{2}-\d{4}\b/g, '[REDACTED SSN]');
 
-    // 3. Speech formatting scrubber (Strips markdown for Text-to-Speech engine compatibility)
-    // Remove bold/italics markers
-    processed = processed.replace(/\*\*|__|\*|_/g, '');
-    
-    // Remove inline code ticks
-    processed = processed.replace(/`/g, '');
-    
-    // Remove heading signs (e.g. #, ##)
-    processed = processed.replace(/^#+\s+/gm, '');
-    
-    // Convert bullet lists into a single continuous reading line
-    processed = processed.replace(/^\s*[-*+]\s+/gm, ', ');
-    processed = processed.replace(/^\s*\d+\.\s+/gm, ', ');
-
-    // Convert double line breaks into single space/paragraph
-    processed = processed.replace(/\n+/g, ' ');
-
-    // Clean up spaces
-    processed = processed.replace(/\s+/g, ' ').trim();
-
     return {
       allowed: true,
-      sanitizedContent: processed
+      sanitizedContent: processed.trim()
     };
   }
 }

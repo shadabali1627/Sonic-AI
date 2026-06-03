@@ -30,6 +30,7 @@ export default function ProfilePage() {
     const [bio, setBio] = React.useState("")
     const [avatarUrl, setAvatarUrl] = React.useState("")
     const [email, setEmail] = React.useState("")
+    const [contextMessageLimit, setContextMessageLimit] = React.useState<number>(10)
 
     // Guardrail settings state
     const [guardrails, setGuardrails] = React.useState({
@@ -58,6 +59,9 @@ export default function ProfilePage() {
                 setBio(userData.bio || "")
                 if (userData.guardrails) {
                     setGuardrails(userData.guardrails)
+                }
+                if (userData.contextMessageLimit !== undefined) {
+                    setContextMessageLimit(userData.contextMessageLimit)
                 }
             }
         } catch (e) {
@@ -88,7 +92,8 @@ export default function ProfilePage() {
             const response = await updateUserProfile({
                 username: name,
                 bio,
-                guardrails
+                guardrails,
+                contextMessageLimit
             })
             
             if (response.access_token) {
@@ -104,6 +109,9 @@ export default function ProfilePage() {
                 setBio(response.user.bio || "")
                 if (response.user.guardrails) {
                     setGuardrails(response.user.guardrails)
+                }
+                if (response.user.contextMessageLimit !== undefined) {
+                    setContextMessageLimit(response.user.contextMessageLimit)
                 }
             }
         } catch (err: any) {
@@ -310,6 +318,24 @@ export default function ProfilePage() {
                                         <p className="text-[10px] text-gray-500 text-right">
                                             {bio.length}/160 characters
                                         </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="contextLimit" className="text-gray-300 text-xs font-bold uppercase tracking-wider">Context Memory Limit (Messages)</Label>
+                                        <div className="relative">
+                                            <Input
+                                                id="contextLimit"
+                                                type="number"
+                                                min={1}
+                                                max={50}
+                                                value={contextMessageLimit}
+                                                onChange={(e) => setContextMessageLimit(parseInt(e.target.value) || 10)}
+                                                className="bg-black/50 border-white/5 focus-visible:border-cyan-500 focus-visible:ring-1 focus-visible:ring-cyan-500/20 pl-4 h-11 rounded-xl text-sm"
+                                            />
+                                            <p className="text-[10px] text-gray-500 mt-1">
+                                                Controls how many past messages the AI remembers in a conversation. (Default: 10)
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
                             ) : (

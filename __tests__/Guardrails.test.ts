@@ -41,22 +41,33 @@ describe('OutputValidator', () => {
     expect(result.sanitizedContent).toContain('[REDACTED PHONE]');
   });
 
-  it('should clean markdown tags for TTS', () => {
+  it('should preserve markdown tags and formatting', () => {
     const result = OutputValidator.validate('### Summary\n- **Item 1**\n- *Item 2*');
-    expect(result.sanitizedContent).toBe('Summary , Item 1 , Item 2');
+    expect(result.sanitizedContent).toBe('### Summary\n- **Item 1**\n- *Item 2*');
   });
 });
 
 describe('ModelRouter', () => {
-  it('should route image upload queries to Gemini if key exists', () => {
-    // If keys aren't configured in test, it routes to gemini fallback
+  it('should route image upload queries to Gemini Gemma', () => {
     const result = ModelRouter.route('Analyze this image', true, 'auto');
     expect(result.provider).toBe('gemini');
+    expect(result.modelId).toBe('gemma-4-26b-a4b-it');
   });
 
-  it('should route based on forced strategies if key exists', () => {
-    // Falls back to gemini if openrouter is not configured
+  it('should default to Gemini Gemma routing for normal queries', () => {
+    const result = ModelRouter.route('Hello', false, 'auto');
+    expect(result.provider).toBe('gemini');
+    expect(result.modelId).toBe('gemma-4-26b-a4b-it');
+  });
+
+  it('should route based on forced strategies to Gemini Gemma', () => {
     const result = ModelRouter.route('Hello', false, 'gemini');
     expect(result.provider).toBe('gemini');
+    expect(result.modelId).toBe('gemma-4-26b-a4b-it');
+
+    const resultLlama = ModelRouter.route('Hello', false, 'llama');
+    expect(resultLlama.provider).toBe('gemini');
+    expect(resultLlama.modelId).toBe('gemma-4-26b-a4b-it');
   });
 });
+

@@ -22,6 +22,7 @@ export class GuardrailManager {
     reason?: string;
     routedModel?: RoutedModel;
     rateLimitRemaining?: number;
+    topicPromise?: Promise<{ allowed: boolean; reason?: string }>;
   }> {
     // 1. Rate Limiting Check (Run first to prevent LLM charges on spammed messages)
     let remaining = 30;
@@ -52,15 +53,10 @@ export class GuardrailManager {
     }
 
     // 3. Topic Classifier (Keeping chatbot voice-friendly & on-scope)
+    // Run topic classifier concurrently as a promise to prevent sequential latency.
+    let topicPromise: Promise<{ allowed: boolean; reason?: string }> | undefined;
     if (settings.topicEnforcement) {
-      const topicResult = await TopicClassifier.classify(message);
-      if (!topicResult.allowed) {
-        return {
-          allowed: false,
-          reason: topicResult.reason,
-          rateLimitRemaining: remaining
-        };
-      }
+      topicPromise = TopicClassifier.classify(message);
     }
 
     // 4. Model Router (Select optimal model based on features & settings)
@@ -69,7 +65,8 @@ export class GuardrailManager {
     return {
       allowed: true,
       routedModel,
-      rateLimitRemaining: remaining
+      rateLimitRemaining: remaining,
+      topicPromise
     };
   }
 
@@ -80,7 +77,7 @@ export class GuardrailManager {
   public static async validateOutput(
     message: string,
     responseText: string,
-    primaryProvider: 'openrouter' | 'gemini',
+    primaryModelId: string = 'google/gemma-2-27b-it:free',
     settings: GuardrailSettings = DEFAULT_GUARDRAIL_SETTINGS
   ): Promise<string> {
     let output = responseText;
@@ -93,7 +90,7 @@ export class GuardrailManager {
 
     // 2. Cross-Model Consistency
     if (settings.crossModelConsistency) {
-      const isConsistent = await ConsistencyChecker.verify(message, output, primaryProvider);
+      const isConsistent = await ConsistencyChecker.verify(message, output, primaryModelId);
       if (!isConsistent) {
         // Return a slightly modified, safer response or log audit
         console.warn('Cross-model consistency check flagged deviation.');
@@ -104,3 +101,4 @@ export class GuardrailManager {
   }
 }
 export { ModelRouter, RateLimiter, InputGuardrail, TopicClassifier, OutputValidator, ConsistencyChecker };
+

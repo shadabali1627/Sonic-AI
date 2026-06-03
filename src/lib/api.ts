@@ -55,7 +55,7 @@ export const getCurrentUser = async () => {
     return response.data;
 };
 
-export const updateUserProfile = async (data: { username: string; bio: string; guardrails: any }) => {
+export const updateUserProfile = async (data: { username?: string; bio?: string; guardrails?: any; contextMessageLimit?: number }) => {
     const response = await api.post('/auth/profile', data);
     return response.data;
 };

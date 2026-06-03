@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Volume2, User, Bot, Copy, Check, FileText, RefreshCw, Download, Sparkles, X, ZoomIn } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -353,19 +354,32 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
                     {/* Regular text message / image prompt description */}
                     {!isGeneratingImage && (isImageMessage ? content : true) && (
                         <MemoizedReactMarkdown
+                            remarkPlugins={[remarkGfm]}
                             components={{
                                 h1: ({ node, ...props }) => <h1 className="text-2xl sm:text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-purple-400 mt-6 mb-4 pb-2 border-b border-white/10" {...props} />,
                                 h2: ({ node, ...props }) => <h2 className="text-xl sm:text-2xl font-bold text-gray-100 mt-5 mb-3" {...props} />,
                                 h3: ({ node, ...props }) => <h3 className="text-lg sm:text-xl font-bold text-gray-200 mt-4 mb-2" {...props} />,
                                 p: ({ node, ...props }) => <p className="mb-4 last:mb-0 leading-7 text-[15px]" {...props} />,
+                                strong: ({ node, ...props }) => <strong className="font-bold text-white" {...props} />,
                                 a: ({ node, ...props }) => <a className="text-cyan-400 hover:text-cyan-300 hover:underline transition-colors font-medium" {...props} />,
                                 ul: ({ node, ...props }) => <ul className="list-disc pl-5 mb-4 space-y-1 text-gray-300 marker:text-cyan-500" {...props} />,
                                 ol: ({ node, ...props }) => <ol className="list-decimal pl-5 mb-4 space-y-1 text-gray-300 marker:text-cyan-500" {...props} />,
                                 blockquote: ({ node, ...props }) => <blockquote className="border-l-4 border-cyan-500/50 pl-4 py-1 my-4 bg-white/5 rounded-r italic text-gray-400" {...props} />,
                                 hr: ({ node, ...props }) => <hr className="border-white/10 my-6" {...props} />,
-                                code: ({ node, inline, className, children, ...props }: any) => {
+                                table: ({ node, ...props }) => (
+                                    <div className="my-6 w-full overflow-x-auto rounded-xl border border-white/10 bg-[#08090c]/50 backdrop-blur-xs">
+                                        <table className="w-full text-left text-sm border-collapse" {...props} />
+                                    </div>
+                                ),
+                                thead: ({ node, ...props }) => <thead className="border-b border-white/10 bg-white/5" {...props} />,
+                                tbody: ({ node, ...props }) => <tbody className="divide-y divide-white/5" {...props} />,
+                                tr: ({ node, ...props }) => <tr className="hover:bg-white/[0.02] transition-colors" {...props} />,
+                                th: ({ node, ...props }) => <th className="px-4 py-3 font-semibold text-cyan-400 text-xs uppercase tracking-wider border-r border-white/5 last:border-0" {...props} />,
+                                td: ({ node, ...props }) => <td className="px-4 py-3 text-gray-300 border-r border-white/5 last:border-0" {...props} />,
+                                code: ({ node, className, children, ...props }: any) => {
                                     const match = /language-(\w+)/.exec(className || '')
-                                    return !inline ? (
+                                    const isBlock = match || String(children).includes('\n')
+                                    return isBlock ? (
                                         <CodeBlock language={match ? match[1] : ''} code={String(children).replace(/\n$/, '')} />
                                     ) : (
                                         <code className="bg-white/10 text-cyan-300 px-1.5 py-0.5 rounded text-xs font-mono border border-white/5" {...props}>
@@ -390,17 +404,30 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
 
                             if (type.startsWith('image/')) {
                                 return (
-                                    <img
+                                    <a
                                         key={i}
-                                        src={url}
-                                        alt={name}
-                                        loading="lazy"
-                                        className="w-full max-w-[240px] rounded-xl border border-white/10 shadow-md hover:scale-[1.02] transition-transform duration-300"
-                                    />
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="block w-full max-w-[240px] rounded-xl overflow-hidden border border-white/10 shadow-md hover:scale-[1.02] transition-transform duration-300 cursor-pointer"
+                                    >
+                                        <img
+                                            src={url}
+                                            alt={name}
+                                            loading="lazy"
+                                            className="w-full h-auto object-cover"
+                                        />
+                                    </a>
                                 );
                             } else {
                                 return (
-                                    <div key={i} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 pr-5 max-w-[260px] shadow-sm hover:bg-white/10 transition-colors cursor-pointer group/file">
+                                    <a
+                                        key={i}
+                                        href={url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 pr-5 max-w-[260px] shadow-sm hover:bg-white/10 transition-colors cursor-pointer group/file no-underline"
+                                    >
                                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/20 text-red-500 group-hover/file:bg-red-500/30 transition-colors">
                                             <FileText className="h-5 w-5" />
                                         </div>
@@ -408,7 +435,7 @@ export const ChatBubble = React.memo(function ChatBubble({ role, content, type, 
                                             <span className="truncate text-sm font-medium text-white">{name}</span>
                                             <span className="text-xs text-gray-400 uppercase">{name.split('.').pop()} File</span>
                                         </div>
-                                    </div>
+                                    </a>
                                 );
                             }
                         })}

@@ -5,7 +5,7 @@ import { ChatService } from '@/lib/services/chat-service';
 import { ImageGenerationService } from '@/lib/services/image-generation-service';
 import { CloudinaryService } from '@/lib/services/cloudinary-service';
 import { ObjectId } from 'mongodb';
-import { GuardrailManager, ModelRouter, RateLimiter } from '@/lib/guardrails/guardrail-manager';
+import { GuardrailManager, ModelRouter, RateLimiter, OutputValidator } from '@/lib/guardrails/guardrail-manager';
 import { DEFAULT_GUARDRAIL_SETTINGS } from '@/lib/guardrails/types';
 
 const chatService = new ChatService();
@@ -150,25 +150,50 @@ export async function POST(
     const stream = new ReadableStream({
       async start(controller) {
         let fullResponse = "";
+        let sentLength = 0;
         try {
           for await (const chunk of generator) {
             fullResponse += chunk;
-            if (!guardrailSettings.outputValidation && !guardrailSettings.crossModelConsistency) {
+            
+            // If crossModelConsistency is active, we MUST block streaming because we require the complete response for auditing.
+            if (guardrailSettings.crossModelConsistency) {
+              continue;
+            }
+
+            if (guardrailSettings.outputValidation) {
+              // Perform fast incremental validation/redaction
+              const validationResult = OutputValidator.validate(fullResponse);
+              const validatedText = validationResult.sanitizedContent || fullResponse;
+              
+              if (validatedText.length > sentLength) {
+                const diff = validatedText.slice(sentLength);
+                controller.enqueue(encoder.encode(diff));
+                sentLength = validatedText.length;
+              }
+            } else {
               controller.enqueue(encoder.encode(chunk));
             }
           }
 
           // Run output guardrails on fully accumulated text
-          if (guardrailSettings.outputValidation || guardrailSettings.crossModelConsistency) {
-            const primaryProvider = routedModel?.provider || 'openrouter';
+          if (guardrailSettings.crossModelConsistency) {
+            const primaryModelId = routedModel?.modelId || 'google/gemma-2-27b-it:free';
             const validatedResponse = await GuardrailManager.validateOutput(
               lastUserMsg.content,
               fullResponse,
-              primaryProvider,
+              primaryModelId,
               guardrailSettings
             );
+
             fullResponse = validatedResponse;
             controller.enqueue(encoder.encode(validatedResponse));
+          } else if (guardrailSettings.outputValidation) {
+            // Apply final output validation check to synchronize any last characters/safety overrides
+            const validationResult = OutputValidator.validate(fullResponse);
+            fullResponse = validationResult.sanitizedContent || fullResponse;
+            if (fullResponse.length > sentLength) {
+              controller.enqueue(encoder.encode(fullResponse.slice(sentLength)));
+            }
           }
           
           const assistantMsg = { role: 'assistant', content: fullResponse, timestamp: new Date() };

@@ -4,10 +4,12 @@ import { verifyToken } from '@/lib/auth';
 import { ChatService } from '@/lib/services/chat-service';
 import { FileService } from '@/lib/services/file-service';
 import { ObjectId } from 'mongodb';
-import { GuardrailManager } from '@/lib/guardrails/guardrail-manager';
+import { GuardrailManager, OutputValidator } from '@/lib/guardrails/guardrail-manager';
 import { DEFAULT_GUARDRAIL_SETTINGS } from '@/lib/guardrails/types';
+import { CloudinaryService } from '@/lib/services/cloudinary-service';
 
 const chatService = new ChatService();
+const cloudinaryService = new CloudinaryService();
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,6 +39,7 @@ export async function POST(req: NextRequest) {
 
     let imageBytes: Buffer | undefined;
     let contextText = "";
+    let cloudinaryUrl = "";
 
     if (file) {
       const buffer = Buffer.from(await file.arrayBuffer());
@@ -48,6 +51,14 @@ export async function POST(req: NextRequest) {
         imageBytes = buffer;
       } else if (type === 'binary') {
         contextText = `Attached file: ${content}\n\n`;
+      }
+
+      // Upload file to Cloudinary in the background
+      try {
+        const base64DataUri = `data:${file.type || 'application/octet-stream'};base64,${buffer.toString('base64')}`;
+        cloudinaryUrl = await cloudinaryService.uploadFile(base64DataUri);
+      } catch (uploadErr) {
+        console.error("Cloudinary upload failed:", uploadErr);
       }
     }
 
@@ -130,7 +141,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Save User Message if allowed
-    const userMsg = { role: 'user', content: message || "[File Upload]", timestamp: new Date() };
+    const userMsg: any = { role: 'user', content: message || "[File Upload]", timestamp: new Date() };
+    if (cloudinaryUrl && file) {
+      userMsg.attachments = [
+        {
+          url: cloudinaryUrl,
+          type: file.type || 'application/octet-stream',
+          name: file.name
+        }
+      ];
+    }
     await chatsCollection.updateOne(
       { _id: chatObj._id },
       { 
@@ -141,7 +161,8 @@ export async function POST(req: NextRequest) {
 
     // 5. Prepare Stream
     // Filter history: replace image messages with text summaries to avoid passing base64 to LLM
-    const rawHistory = chatObj.messages.slice(-10);
+    const limit = user.contextMessageLimit !== undefined ? user.contextMessageLimit : 10;
+    const rawHistory = chatObj.messages.slice(-limit);
     const history = rawHistory.map((msg: any) => {
       if (msg.type === 'image' && msg.role === 'assistant') {
         return { role: msg.role, content: `[Generated image from prompt: ${msg.content}]` };
@@ -156,25 +177,135 @@ export async function POST(req: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         let fullResponse = "";
+        let sentLength = 0;
+
+        // Start topic validation concurrently in the background if it exists
+        let topicAllowed = true;
+        let topicReason = "";
+        let topicChecked = false;
+        const topicPromise = inputGuardrailResult.topicPromise;
+
+        const checkTopic = async () => {
+          if (topicPromise && !topicChecked) {
+            try {
+              const res = await topicPromise;
+              topicAllowed = res.allowed;
+              topicReason = res.reason || "Safety check violation.";
+            } catch (e) {
+              console.error("Topic verification error:", e);
+            }
+            topicChecked = true;
+          }
+        };
+
         try {
           for await (const chunk of generator) {
+            if (req.signal.aborted) {
+              console.log("Client aborted request, stopping stream generator");
+              break;
+            }
+
+            // Await the topic check concurrently on the first chunk or before streaming
+            if (!topicChecked) {
+              await checkTopic();
+              if (!topicAllowed) {
+                controller.enqueue(encoder.encode(topicReason));
+                fullResponse = topicReason;
+                break;
+              }
+            }
+
             fullResponse += chunk;
-            if (!guardrailSettings.outputValidation && !guardrailSettings.crossModelConsistency) {
-              controller.enqueue(encoder.encode(chunk));
+            
+            // Strip <think> tags dynamically
+            let cleanResponse = fullResponse.replace(/<think>[\s\S]*?<\/think>/gi, '');
+            const openThinkMatch = cleanResponse.match(/<think>(?!.*<\/think>)/i);
+            if (openThinkMatch) {
+                cleanResponse = cleanResponse.substring(0, openThinkMatch.index);
+            }
+            
+            // If crossModelConsistency is active, we MUST block streaming because we require the complete response for auditing.
+            if (guardrailSettings.crossModelConsistency) {
+              continue;
+            }
+
+            if (guardrailSettings.outputValidation) {
+              // Perform fast incremental validation/redaction
+              const validationResult = OutputValidator.validate(cleanResponse);
+              const validatedText = validationResult.sanitizedContent || cleanResponse;
+              
+              if (validatedText.length > sentLength) {
+                const diff = validatedText.slice(sentLength);
+                try {
+                  controller.enqueue(encoder.encode(diff));
+                } catch (err) {
+                  console.log("Stream closed by client during enqueue");
+                  break;
+                }
+                sentLength = validatedText.length;
+              }
+            } else {
+              if (cleanResponse.length > sentLength) {
+                const diff = cleanResponse.slice(sentLength);
+                try {
+                  controller.enqueue(encoder.encode(diff));
+                } catch (err) {
+                  console.log("Stream closed by client during enqueue");
+                  break;
+                }
+                sentLength = cleanResponse.length;
+              }
             }
           }
 
+          // Await topic verification if generator returned empty or early
+          if (!topicChecked) {
+            await checkTopic();
+            if (!topicAllowed) {
+              controller.enqueue(encoder.encode(topicReason));
+              fullResponse = topicReason;
+            }
+          }
+
+          if (!topicAllowed) {
+            // Save blocked safety message after stream ends
+            const assistantMsg = { role: 'assistant', content: topicReason, timestamp: new Date(), isBlocked: true };
+            await chatsCollection.updateOne(
+              { _id: chatObj._id },
+              { 
+                $push: { messages: assistantMsg as any },
+                $set: { updated_at: new Date() }
+              }
+            );
+            return;
+          }
+
+          // Strip <think> tags from the final response before saving
+          fullResponse = fullResponse.replace(/<think>[\s\S]*?<\/think>/gi, '');
+          const openThinkMatchFinal = fullResponse.match(/<think>(?!.*<\/think>)/i);
+          if (openThinkMatchFinal) {
+              fullResponse = fullResponse.substring(0, openThinkMatchFinal.index);
+          }
+
           // Run output guardrails on fully accumulated text
-          if (guardrailSettings.outputValidation || guardrailSettings.crossModelConsistency) {
-            const primaryProvider = routedModel?.provider || 'openrouter';
+          if (guardrailSettings.crossModelConsistency) {
+            const primaryModelId = routedModel?.modelId || 'google/gemma-2-27b-it:free';
             const validatedResponse = await GuardrailManager.validateOutput(
               message,
               fullResponse,
-              primaryProvider,
+              primaryModelId,
               guardrailSettings
             );
+
             fullResponse = validatedResponse;
             controller.enqueue(encoder.encode(validatedResponse));
+          } else if (guardrailSettings.outputValidation) {
+            // Apply final output validation check to synchronize any last characters/safety overrides
+            const validationResult = OutputValidator.validate(fullResponse);
+            fullResponse = validationResult.sanitizedContent || fullResponse;
+            if (fullResponse.length > sentLength) {
+              controller.enqueue(encoder.encode(fullResponse.slice(sentLength)));
+            }
           }
           
           // 6. Save Assistant Message after stream ends

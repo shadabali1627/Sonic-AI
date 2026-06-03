@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ detail: 'Invalid token' }, { status: 401 });
     }
 
-    const { username, bio, guardrails } = await req.json();
+    const { username, bio, guardrails, contextMessageLimit } = await req.json();
 
     const { db } = await connectToDatabase();
     const usersCollection = db.collection('users');
@@ -34,6 +34,10 @@ export async function POST(req: NextRequest) {
     
     if (guardrails !== undefined) {
       updateFields.guardrails = guardrails;
+    }
+
+    if (contextMessageLimit !== undefined) {
+      updateFields.contextMessageLimit = contextMessageLimit;
     }
 
     let newToken: string | undefined;
