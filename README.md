@@ -34,6 +34,7 @@ Sonic AI is a state-of-the-art, voice-first AI chat assistant built using **Next
 *   **JWT Cookie-Based Auth**: Secure sign-up, sign-in, and sign-out flows utilizing token verification through `jose` middleware.
 *   **Password Cryptography**: Custom PBKDF2 hashing functions for robust database-level credential storage. Includes secure direct password resets.
 *   **Dynamic Session Management**: Seamlessly create, rename, list, and database-level delete persistent chat history (synced to MongoDB Atlas).
+*   **Dynamic Context Memory Limit**: Configurable conversational memory windows, allowing users to explicitly control how much historical context the AI retains across chat interactions to balance token usage with conversational fluidity.
 
 ---
 
