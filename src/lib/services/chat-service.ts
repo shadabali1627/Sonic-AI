@@ -74,14 +74,22 @@ Format your responses using clean, standard Markdown with clear headings, bullet
     try {
       const model = genAI.getGenerativeModel({
         model: activeModel.modelId,
-        systemInstruction: systemInstruction,
       });
 
+      const formattedHistory = history.map(msg => ({
+        role: msg.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: msg.content }]
+      }));
+
+      // Inject system instruction for Gemma
+      if (formattedHistory.length > 0) {
+        formattedHistory[0].parts[0].text = `[System Instructions: ${systemInstruction}]\n\n${formattedHistory[0].parts[0].text}`;
+      } else {
+        promptMessage = `[System Instructions: ${systemInstruction}]\n\n${promptMessage}`;
+      }
+
       const chat = model.startChat({
-        history: history.map(msg => ({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        }))
+        history: formattedHistory
       });
 
       const resultStream = await chat.sendMessageStream(promptMessage);
@@ -102,14 +110,21 @@ Format your responses using clean, standard Markdown with clear headings, bullet
       try {
         const model = genAI.getGenerativeModel({
           model: activeModel.modelId,
-          systemInstruction: systemInstruction,
         });
 
+        const formattedHistory = history.map(msg => ({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        }));
+
+        if (formattedHistory.length > 0) {
+          formattedHistory[0].parts[0].text = `[System Instructions: ${systemInstruction}]\n\n${formattedHistory[0].parts[0].text}`;
+        } else {
+          promptMessage = `[System Instructions: ${systemInstruction}]\n\n${promptMessage}`;
+        }
+
         const chat = model.startChat({
-          history: history.map(msg => ({
-            role: msg.role === 'assistant' ? 'model' : 'user',
-            parts: [{ text: msg.content }]
-          }))
+          history: formattedHistory
         });
 
         const resultStream = await chat.sendMessageStream(promptMessage);

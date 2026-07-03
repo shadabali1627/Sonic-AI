@@ -18,7 +18,7 @@ export class ModelRouter {
   ): RoutedModel {
     return {
       provider: 'gemini',
-      modelId: 'gemma-4-26b-a4b-it',
+      modelId: 'gemma-2-27b-it',
       apiKey: this.GEMINI_API_KEY
     };
   }
