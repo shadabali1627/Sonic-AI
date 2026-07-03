@@ -85,9 +85,6 @@ export default function ChatPage() {
   const handleSendMessage = async (text: string, files?: File[], options?: { imageMode?: boolean }) => {
     if (!text && (!files || files.length === 0)) return;
 
-    // Force scroll to bottom on new message to ensure auto-scroll logic kicks in
-    scrollToBottom()
-
     // Abort previous request if active
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -108,6 +105,8 @@ export default function ChatPage() {
         imageUrl: null,
         isGeneratingImage: true
       }])
+
+      setTimeout(() => scrollToBottom(), 50)
 
       const abortController = new AbortController()
       abortControllerRef.current = abortController
@@ -195,6 +194,8 @@ export default function ChatPage() {
     const userMsg = { role: 'user', content: text, attachments }
     setMessages(prev => [...prev, userMsg])
     setIsLoading(true)
+
+    setTimeout(() => scrollToBottom(), 50)
 
     const abortController = new AbortController()
     abortControllerRef.current = abortController
@@ -530,7 +531,7 @@ export default function ChatPage() {
                 )}
 
                 {/* Spacer for bottom input area */}
-                <div className="h-36 sm:h-48" />
+                <div className="h-48 sm:h-64" />
               </div>
             )}
           </div>

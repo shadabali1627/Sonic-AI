@@ -47,8 +47,15 @@ export function ChatInput({ onSendMessage, isLoading, value, onInputChange, onSt
     React.useEffect(() => {
         const textarea = textareaRef.current
         if (textarea) {
+            const previousHeight = textarea.style.height
             textarea.style.height = "auto"
-            textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`
+            const newHeight = `${Math.min(textarea.scrollHeight, 200)}px`
+            textarea.style.height = newHeight
+            
+            // If height changed, dispatch resize event to trigger auto-scroll if at bottom
+            if (previousHeight && previousHeight !== newHeight) {
+                window.dispatchEvent(new Event('resize'))
+            }
         }
     }, [inputValue])
 

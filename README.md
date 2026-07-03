@@ -1,5 +1,7 @@
 # 🎙️ Sonic AI — Premium Voice-First Chat Assistant
 
+**[🚀 View Live Demo](https://sonic-ai-henna.vercel.app/)**
+
 Sonic AI is a state-of-the-art, voice-first AI chat assistant built using **Next.js 16 (App Router)**, **React 19**, and **MongoDB**. Designed with a premium, mobile-first glassmorphic aesthetic, Sonic AI features real-time conversational streaming, browser-based speech synthesis, Whisper-powered voice input, high-fidelity image generation, custom JWT authentication, and resilient PDF document analysis.
 
 ---
@@ -13,12 +15,9 @@ Sonic AI is a state-of-the-art, voice-first AI chat assistant built using **Next
     *   *Auto-Language Detection*: Powered by `franc-min` to dynamically detect input language and route to the correct browser voice profile (supporting English, Spanish, French, German, Italian, Portuguese, Russian, Chinese, Japanese, Hindi, and Urdu).
 *   **Whisper-Powered Voice Input**: Record messages directly inside the application using HTML5 MediaRecorder. Audio is streamed to a custom backend route integrating Hugging Face's `openai/whisper-large-v3-turbo` model for high-accuracy transcriptions. Includes a morphing glow wrapper and a CSS-animated recording pulse wave.
 
-### 🤖 Robust Multi-Model Failover Architecture
-*   **Primary text completion** routes to OpenRouter (`openai/gpt-oss-120b:free`).
-*   **Automated Gemini Fallback**: In the event of API rate limits, connectivity issues, or service degradation on OpenRouter, the application instantly and silently fails over to Google Gemini (`gemma-4-31b-it` via the `@google/generative-ai` SDK).
-*   **Failover-Guardrail Coordination**: Failover mechanisms are applied not just to standard chat completions, but also to guardrails:
-    *   *Topic Classifier*: Evaluates user inputs against system scope guidelines (preventing complex programming tasks or heavy reading material that isn't voice-friendly), using Gemini if OpenRouter is unreachable.
-    *   *Consistency Auditor*: Conducts post-response audits for logical alignment, using Gemini as fallback to ensure response safety and coherence.
+### 🤖 Robust Model Architecture
+*   **Primary text completion** routes to Google Gemini (Gemini 3.1 Pro via the `@google/generative-ai` SDK).
+*   **Automated Fallback**: In the event of API rate limits, connectivity issues, or service degradation, the application instantly and silently fails over to `gemini-2.5-flash`.
 
 ### 🖼️ High-Fidelity Image Generation
 *   **FLUX.1-schnell Model Integration**: Generate stunning visuals directly from chat prompts using FLUX via Hugging Face.
@@ -47,15 +46,13 @@ graph TD
     A[User Message] --> B[Rate Limiter]
     B -->|Passed| C[Input Guardrail]
     C -->|Passed| D[Topic Classifier]
-    D -->|In-Scope| E[Model Router]
-    E -->|Route| F[LLM Generation]
-    F --> G[Output Validator]
-    G --> H[Consistency Checker]
-    H -->|Verified| I[User UI Stream]
+    D -->|In-Scope| E[LLM Generation]
+    E --> F[Output Validator]
+    F -->|Verified| G[User UI Stream]
     
-    B -->|Failed| J[Blocked/Error]
-    C -->|Failed| J
-    D -->|Out-of-Scope| K[Polite Refusal]
+    B -->|Failed| H[Blocked/Error]
+    C -->|Failed| H
+    D -->|Out-of-Scope| I[Polite Refusal]
 ```
 
 ### 1. Inbound Guardrail & Exploit Prevention
@@ -67,19 +64,16 @@ graph TD
 *   **Database-Backed Limiter**: Prevents denial-of-service attempts by enforcing a strict rate limit of **30 requests per minute per user**, tracked persistently via a MongoDB collection.
 *   **Auto-Pruning Cleanup**: Employs sliding-window logic that automatically cleanses expired rate-limiting entries older than 60 seconds, keeping database storage overhead low.
 
-### 3. Dual-Heuristic Topic Moderation Classifier
+### 3. Topic Moderation Classifier
 *   **Fast Heuristic Matching**: Instantly catches programming tasks using local regex matches on code syntax indicators (such as code block markers ` ``` ` or directives like `"write a python/js script"`), short-circuiting the query to conserve LLM costs.
-*   **Contextual Scope Classification**: Leverages the LLM router pipeline (utilizing OpenRouter with fallback to Google Gemini) to verify that queries are conversational, safe, and voice-appropriate (refusing multi-step math derivations, lengthy academic essays, or illegal instructions).
+*   **Built-in API Guardrails**: Relies on upstream models' built-in guardrails for complex contextual moderation.
 
 ### 4. Outbound Response Validation & PII Scrubbing
 *   **PII Anonymization Filter**: Automatically scrubs sensitive Personally Identifiable Information (PII) from generated responses, including Email addresses, Phone numbers, and Social Security Numbers (SSN), replacing them with standard `[REDACTED]` tokens.
 *   **Safety Word List Blockers**: Scans final responses against standard moderation lists to block inappropriate or unsafe keywords.
 *   **TTS Compatibility Normalizer**: Normalizes generated markdown formatting (removing asterisks, backticks, list characters, headers, and excessive line breaks) into fluid, comma-separated conversational prose optimal for speech synthesis.
 
-### 5. Cross-Model Semantic Auditing
-*   **Logical Consistency Verification**: Periodically audits output quality by cross-referencing OpenRouter's responses against Gemini's analysis, flagging semantic deviations or hallucinations to maintain high accuracy and safety standards.
 
----
 
 ## 🛠️ Technology Stack
 
@@ -88,7 +82,7 @@ graph TD
 | **Framework & Engine** | Next.js 16 (App Router), React 19, TypeScript |
 | **Styling & Motion** | Tailwind CSS (v4), Framer Motion, Lucide Icons |
 | **Database & Auth** | MongoDB Native Driver, JWT (`jose`), PBKDF2 |
-| **AI Models (Text)** | OpenRouter (`gpt-oss-120b:free`), Gemini SDK (`gemma-4-31b-it`) |
+| **AI Models (Text)** | Gemini SDK (Gemini 3.1 Pro, `gemini-2.5-flash`) |
 | **AI Models (Audio)** | Hugging Face Inference Router (`openai/whisper-large-v3-turbo`) |
 | **AI Models (Image)**| Hugging Face Inference Router (`black-forest-labs/FLUX.1-schnell`) |
 | **Media Hosting** | Cloudinary API |
@@ -105,12 +99,9 @@ Create a `.env.local` file in the root directory and configure the following var
 MONGODB_URI=your_mongodb_connection_string
 
 # Authentication Secret
-JWT_SECRET=your_jwt_signing_secret_key
+SECRET_KEY=your_jwt_signing_secret_key
 
-# OpenRouter Configuration (Primary text generator)
-OPENROUTER_API_KEY=your_openrouter_api_key
-
-# Google Generative AI Configuration (Backup text generator and guardrail auditor)
+# Google Generative AI Configuration (Primary text generator)
 GEMINI_API_KEY=your_gemini_api_key
 
 # Hugging Face API Configuration (For Speech-to-Text & Image Generation)

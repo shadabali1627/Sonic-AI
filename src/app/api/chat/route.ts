@@ -217,9 +217,9 @@ export async function POST(req: NextRequest) {
 
             fullResponse += chunk;
             
-            // Strip <think> tags dynamically
-            let cleanResponse = fullResponse.replace(/<think>[\s\S]*?<\/think>/gi, '');
-            const openThinkMatch = cleanResponse.match(/<think>(?!.*<\/think>)/i);
+            // Strip <think> tags dynamically (including surrounding markdown code blocks if any)
+            let cleanResponse = fullResponse.replace(/(?:```[a-zA-Z]*\s*)?<think>[\s\S]*?<\/think>(?:\s*```)?/gi, '');
+            const openThinkMatch = cleanResponse.match(/(?:```[a-zA-Z]*\s*)?<think>(?!.*<\/think>)/i);
             if (openThinkMatch) {
                 cleanResponse = cleanResponse.substring(0, openThinkMatch.index);
             }
@@ -281,8 +281,8 @@ export async function POST(req: NextRequest) {
           }
 
           // Strip <think> tags from the final response before saving
-          fullResponse = fullResponse.replace(/<think>[\s\S]*?<\/think>/gi, '');
-          const openThinkMatchFinal = fullResponse.match(/<think>(?!.*<\/think>)/i);
+          fullResponse = fullResponse.replace(/(?:```[a-zA-Z]*\s*)?<think>[\s\S]*?<\/think>(?:\s*```)?/gi, '');
+          const openThinkMatchFinal = fullResponse.match(/(?:```[a-zA-Z]*\s*)?<think>(?!.*<\/think>)/i);
           if (openThinkMatchFinal) {
               fullResponse = fullResponse.substring(0, openThinkMatchFinal.index);
           }

@@ -12,13 +12,30 @@ export function useScrollToBottom(dependency: any) {
         if (!scrollRef.current) return
 
         const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-        // Allow a small buffer (e.g. 50px)
+        // Allow a larger buffer (250px) for mobile layout shifts
         const diff = scrollHeight - scrollTop - clientHeight
-        const isBottom = diff < 100
+        const isBottom = diff < 250
 
         setIsAtBottom(isBottom)
         setShowScrollButton(!isBottom)
     }, [])
+
+    // Handle window resize events (e.g., mobile keyboard opening)
+    useEffect(() => {
+        const handleResize = () => {
+            if (isAtBottom && scrollRef.current) {
+                requestAnimationFrame(() => {
+                    scrollRef.current?.scrollTo({
+                        top: scrollRef.current.scrollHeight,
+                        behavior: 'auto' // Use auto for instant snap on resize
+                    })
+                })
+            }
+        }
+
+        window.addEventListener('resize', handleResize)
+        return () => window.removeEventListener('resize', handleResize)
+    }, [isAtBottom])
 
     // Auto-scroll when content changes IF we were already close to bottom
     useEffect(() => {
@@ -39,6 +56,7 @@ export function useScrollToBottom(dependency: any) {
                 behavior: 'smooth'
             })
             setIsAtBottom(true)
+            setShowScrollButton(false)
         }
     }
 
