@@ -51,12 +51,9 @@ export class ChatService {
     history: { role: string; content: string }[] = [],
     routedModel?: any
   ): AsyncGenerator<string, void, unknown> {
-    const systemInstruction = `You are Sonic AI, a professional and helpful AI assistant.
-Always format your responses using clean, standard Markdown.
-Use clear headings (## or ###), bullet points, and short paragraphs to make your answers easy to read.
-Use inline code backticks (\`) for variables and technical terms, and fenced code blocks for multi-line code.
-If you need to plan or think before answering, you MUST enclose all your internal reasoning entirely within <think> and </think> XML tags.
-Answer the user's queries directly and helpfully.`;
+    const systemInstruction = `You are Sonic AI, a professional, friendly, and helpful AI assistant.
+Always provide direct, concise, and accurate answers to the user's queries.
+Format your responses using clean, standard Markdown with clear headings, bullet points, and short paragraphs for readability.`;
 
     const activeModel = routedModel || ModelRouter.route(message, !!imageBytes, 'auto');
 
