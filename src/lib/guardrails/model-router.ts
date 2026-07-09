@@ -9,7 +9,7 @@ export class ModelRouter {
   private static OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
 
   /**
-   * Routes the query to Gemini models exclusively, using gemma-4-26b-a4b-it.
+   * Routes the query to Gemini models exclusively, using gemini-3.1-flash-lite.
    */
   public static route(
     message: string,
@@ -18,7 +18,7 @@ export class ModelRouter {
   ): RoutedModel {
     return {
       provider: 'gemini',
-      modelId: 'gemma-2-27b-it',
+      modelId: 'gemini-3.1-flash-lite',
       apiKey: this.GEMINI_API_KEY
     };
   }

@@ -177,7 +177,7 @@ export async function POST(
 
           // Run output guardrails on fully accumulated text
           if (guardrailSettings.crossModelConsistency) {
-            const primaryModelId = routedModel?.modelId || 'google/gemma-2-27b-it:free';
+            const primaryModelId = routedModel?.modelId || 'gemini-3.1-flash-lite';
             const validatedResponse = await GuardrailManager.validateOutput(
               lastUserMsg.content,
               fullResponse,

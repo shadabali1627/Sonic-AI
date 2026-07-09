@@ -51,23 +51,23 @@ describe('ModelRouter', () => {
   it('should route image upload queries to Gemini Gemma', () => {
     const result = ModelRouter.route('Analyze this image', true, 'auto');
     expect(result.provider).toBe('gemini');
-    expect(result.modelId).toBe('gemma-4-26b-a4b-it');
+    expect(result.modelId).toBe('gemma-2-27b-it');
   });
 
   it('should default to Gemini Gemma routing for normal queries', () => {
     const result = ModelRouter.route('Hello', false, 'auto');
     expect(result.provider).toBe('gemini');
-    expect(result.modelId).toBe('gemma-4-26b-a4b-it');
+    expect(result.modelId).toBe('gemma-2-27b-it');
   });
 
   it('should route based on forced strategies to Gemini Gemma', () => {
     const result = ModelRouter.route('Hello', false, 'gemini');
     expect(result.provider).toBe('gemini');
-    expect(result.modelId).toBe('gemma-4-26b-a4b-it');
+    expect(result.modelId).toBe('gemma-2-27b-it');
 
     const resultLlama = ModelRouter.route('Hello', false, 'llama');
     expect(resultLlama.provider).toBe('gemini');
-    expect(resultLlama.modelId).toBe('gemma-4-26b-a4b-it');
+    expect(resultLlama.modelId).toBe('gemma-2-27b-it');
   });
 });
 

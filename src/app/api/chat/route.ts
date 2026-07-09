@@ -234,26 +234,40 @@ export async function POST(req: NextRequest) {
               const validationResult = OutputValidator.validate(cleanResponse);
               const validatedText = validationResult.sanitizedContent || cleanResponse;
               
-              if (validatedText.length > sentLength) {
-                const diff = validatedText.slice(sentLength);
+              let streamableText = validatedText;
+              if (streamableText.length > 25) {
+                streamableText = streamableText.substring(0, streamableText.length - 25);
+              } else {
+                streamableText = "";
+              }
+
+              if (streamableText.length > sentLength) {
+                const diff = streamableText.slice(sentLength);
                 try {
                   controller.enqueue(encoder.encode(diff));
                 } catch (err) {
                   console.log("Stream closed by client during enqueue");
                   break;
                 }
-                sentLength = validatedText.length;
+                sentLength = streamableText.length;
               }
             } else {
-              if (cleanResponse.length > sentLength) {
-                const diff = cleanResponse.slice(sentLength);
+              let streamableText = cleanResponse;
+              if (streamableText.length > 25) {
+                streamableText = streamableText.substring(0, streamableText.length - 25);
+              } else {
+                streamableText = "";
+              }
+
+              if (streamableText.length > sentLength) {
+                const diff = streamableText.slice(sentLength);
                 try {
                   controller.enqueue(encoder.encode(diff));
                 } catch (err) {
                   console.log("Stream closed by client during enqueue");
                   break;
                 }
-                sentLength = cleanResponse.length;
+                sentLength = streamableText.length;
               }
             }
           }
@@ -289,7 +303,7 @@ export async function POST(req: NextRequest) {
 
           // Run output guardrails on fully accumulated text
           if (guardrailSettings.crossModelConsistency) {
-            const primaryModelId = routedModel?.modelId || 'google/gemma-2-27b-it:free';
+            const primaryModelId = routedModel?.modelId || 'gemini-3.1-flash-lite';
             const validatedResponse = await GuardrailManager.validateOutput(
               message,
               fullResponse,
@@ -303,6 +317,10 @@ export async function POST(req: NextRequest) {
             // Apply final output validation check to synchronize any last characters/safety overrides
             const validationResult = OutputValidator.validate(fullResponse);
             fullResponse = validationResult.sanitizedContent || fullResponse;
+            if (fullResponse.length > sentLength) {
+              controller.enqueue(encoder.encode(fullResponse.slice(sentLength)));
+            }
+          } else {
             if (fullResponse.length > sentLength) {
               controller.enqueue(encoder.encode(fullResponse.slice(sentLength)));
             }

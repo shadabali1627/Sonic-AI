@@ -77,7 +77,7 @@ export class GuardrailManager {
   public static async validateOutput(
     message: string,
     responseText: string,
-    primaryModelId: string = 'google/gemma-2-27b-it:free',
+    primaryModelId: string = 'gemini-3.1-flash-lite',
     settings: GuardrailSettings = DEFAULT_GUARDRAIL_SETTINGS
   ): Promise<string> {
     let output = responseText;

@@ -17,7 +17,7 @@ export async function connectToDatabase() {
 
   // Set the connection options
   const client = new MongoClient(uri, {
-    serverSelectionTimeoutMS: 5000,
+    serverSelectionTimeoutMS: 30000,
     connectTimeoutMS: 10000,
     socketTimeoutMS: 45000,
   });

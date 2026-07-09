@@ -52,12 +52,21 @@ export class ChatService {
     routedModel?: any
   ): AsyncGenerator<string, void, unknown> {
     const systemInstruction = `You are Sonic AI, a professional, friendly, and helpful AI assistant.
-Always provide direct, concise, and accurate answers to the user's queries.
-Format your responses using clean, standard Markdown with clear headings, bullet points, and short paragraphs for readability.`;
+CRITICAL RULE: You MUST use as few tokens as possible in your response. Provide extremely brief, direct answers. Do not use conversational filler. Be extremely concise.
+Format your responses using clean, standard Markdown with clear headings, bullet points, and short paragraphs for readability.
+
+If you generate any internal reasoning, planning, or context analysis before your response, you MUST enclose it entirely within <think> and </think> tags. Keep your reasoning as short as possible.
+Example:
+<think>
+* User says: "Hello"
+* Tone: Friendly
+</think>
+# Hello!
+How can I help you?`;
 
     const activeModel = routedModel || ModelRouter.route(message, !!imageBytes, 'auto');
 
-    let promptMessage = message;
+    let promptMessage = message + `\n\n(IMPORTANT: Before answering, you must wrap your internal reasoning/planning in <think> and </think> tags. Do not output reasoning as raw bullet points outside of these tags.)`;
     if (imageBytes) {
       try {
         const imageDescription = await this.describeImageWithGemini(imageBytes);
@@ -74,19 +83,14 @@ Format your responses using clean, standard Markdown with clear headings, bullet
     try {
       const model = genAI.getGenerativeModel({
         model: activeModel.modelId,
+        systemInstruction,
+        generationConfig: { maxOutputTokens: 250 },
       });
 
       const formattedHistory = history.map(msg => ({
         role: msg.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: msg.content }]
       }));
-
-      // Inject system instruction for Gemma
-      if (formattedHistory.length > 0) {
-        formattedHistory[0].parts[0].text = `[System Instructions: ${systemInstruction}]\n\n${formattedHistory[0].parts[0].text}`;
-      } else {
-        promptMessage = `[System Instructions: ${systemInstruction}]\n\n${promptMessage}`;
-      }
 
       const chat = model.startChat({
         history: formattedHistory
@@ -110,18 +114,14 @@ Format your responses using clean, standard Markdown with clear headings, bullet
       try {
         const model = genAI.getGenerativeModel({
           model: activeModel.modelId,
+          systemInstruction,
+          generationConfig: { maxOutputTokens: 250 },
         });
 
         const formattedHistory = history.map(msg => ({
           role: msg.role === 'assistant' ? 'model' : 'user',
           parts: [{ text: msg.content }]
         }));
-
-        if (formattedHistory.length > 0) {
-          formattedHistory[0].parts[0].text = `[System Instructions: ${systemInstruction}]\n\n${formattedHistory[0].parts[0].text}`;
-        } else {
-          promptMessage = `[System Instructions: ${systemInstruction}]\n\n${promptMessage}`;
-        }
 
         const chat = model.startChat({
           history: formattedHistory
